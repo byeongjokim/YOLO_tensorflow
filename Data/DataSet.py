@@ -3,7 +3,7 @@ import os
 import cv2
 import random
 
-class VOC2007():
+class VOC2007(object):
     image_width = 448
     image_height = 448
 

@@ -61,17 +61,20 @@ class Network(object):
         with tf.device("/cpu:0"):
             W1 = tf.get_variable(name="FC_1_W", shape=[7 * 7 * 1024, 4096], initializer=tf.contrib.layers.xavier_initializer())
             b1 = tf.get_variable(name="FC_1_b", shape=[4096], initializer=tf.contrib.layers.xavier_initializer())
-            fc1 = tf.nn.relu(tf.matmul(reshape, W1) + b1)
+            fc1 = tf.nn.leaky_relu(tf.matmul(reshape, W1) + b1, alpha=0.1)
+            fc1 = tf.nn.dropout(fc1, keep_prob=0.5)
             
             W2 = tf.get_variable(name="FC_2_W", shape=[4096, self.cell_size * self.cell_size * (self.num_label + 5 * self.num_box)], initializer=tf.contrib.layers.xavier_initializer())
             b2 = tf.get_variable(name="FC_2_b", shape=[self.cell_size * self.cell_size * (self.num_label + 5 * self.num_box)], initializer=tf.contrib.layers.xavier_initializer())
             fc2 = tf.matmul(fc1, W2) + b2
 
-            model = tf.reshape(local2, [tf.shape(fc2)[0], self.cell_size, self.cell_size, self.num_label + 5 * self.num_box])
-
+            model = tf.reshape(fc2, [tf.shape(fc2)[0], self.cell_size, self.cell_size, self.num_label + 5 * self.num_box])
 
         return model
 
+    def loss(self, model):
+        loss = ''
+        return loss
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu
@@ -100,7 +103,7 @@ class Network(object):
             b = tf.get_variable(name=name + "_b", shape=[fout],
                                 initializer=tf.contrib.layers.xavier_initializer(0.0))
             C = tf.nn.conv2d(din, W, strides=[1, stride, stride, 1], padding='SAME')
-            R = tf.nn.relu(tf.nn.bias_add(C, b))
+            R = tf.nn.leaky_relu(tf.nn.bias_add(C, b), alpha=0.1)
             return R
 
     def pool(self, din, size, stride, option='maxpool'):

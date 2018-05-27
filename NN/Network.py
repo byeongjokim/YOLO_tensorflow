@@ -8,7 +8,7 @@ class Network(object):
         self.num_label = 20
         self.num_box = 2
 
-	def model(self, image):
+	def model(self, image, pre_train=0):
         """Returns the network model of Yolo
         
         This model is not the fast yolo but the simple yolo.
@@ -16,17 +16,18 @@ class Network(object):
         Keyword Arguments:
             image (4-D tensor): [None, 448, 448, 3]
                                 This should be a RGB image with (448, 448) shape.
+            pre_train (int): When pre-training, 1 or 0
         
         Returns:
-            model (4-D tensor): [None, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box]
+            pre-training:
+                pre_t (pre_num_label tensor) : [pre_num_label]
+            re-training:
+                model (4-D tensor): [None, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box]
         
         Example:
             >> image = cv2.resize(cv2.imread("path/to/image.jpg"), (448, 448))
             >> predict_model = model(image)
         """
-
-		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
-
         tmp = self.conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
         tmp = self.pool(din=tmp, size=2, stride=2, option="maxpool")
 
@@ -49,6 +50,18 @@ class Network(object):
         for i in range(0,2):
             tmp = self.conv_layer(filter_size=1, fin=1024, fout=512, din=tmp, stride=1, name="conv_5_"+str(2*i+1))
             tmp = self.conv_layer(filter_size=3, fin=512, fout=1024, din=tmp, stride=1, name="conv_5_"+str(2*i+2))
+        
+        #Before pre-training
+        if pre_train == 1:
+            pre_reshape = tf.reshape(tmp, [tf.shape(tmp)[0], 7 * 7 * 1024])
+
+            pre_W = tf.get_variable(name="pre_t_W", shape=[7 * 7 * 1024, pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
+            pre_b = tf.get_variable(name="pre_t_b", shape=[pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
+            pre_t = tf.matmul(pre_reshape, pre_W) + pre_b
+            return pre_t
+        #=================================================================================================================================================================================
+        #After pre-training
+
         tmp = self.conv_layer(filter_size=3, fin=1024, fout=1024, din=tmp, stride=1, name="conv_5_5")
         tmp = self.conv_layer(filter_size=3, fin=1024, fout=1024, din=tmp, stride=2, name="conv_5_6")
 
@@ -107,6 +120,26 @@ class Network(object):
             return R
 
     def pool(self, din, size, stride, option='maxpool'):
+        """adapt Pool and make Pooling Layer
+        
+        You can choose MaxPool or AvrPool
+        
+        Keyword Arguments:
+            din (4-D tensor): [None, height, width, depth] this is input tensor
+            size (int): size of pool filter
+            stride (int): size of stride
+            option (string): MaxPool : "maxpool"
+                             AvrPool : "avrpool"
+        
+        Returns:
+            pool (4-D tensor): [None, height, width, depth]
+        
+        Example:
+            >> image = tf.placeholder(tf.float32, [None, 448, 448, 3])
+            >> tmp = conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
+            >> tmp = pool(din=tmp, size=2, stride=2, option="maxpool")
+        """
+
         if (option == 'maxpool'):
             pool = tf.nn.max_pool(din, ksize=[1, size, size, 1], strides=[1, stride, stride, 1], padding='SAME')
         elif (option == 'avrpool'):

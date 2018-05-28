@@ -1,7 +1,19 @@
 import tensorflow as tf
 
 class Network(object):
-	
+    """Network class
+    
+    Network of Yolo Model, even pre-train Model.
+
+    Constructor:
+        init cell size(default is 7), number of label(default is 20 in VOC2007), number of box(default is 2)
+
+    Methods:
+        model
+        loss
+        conv_layer
+        pool
+    """
 	def __init__(self):
 		print("init Network Model")
         self.cell_size = 7
@@ -51,7 +63,7 @@ class Network(object):
             tmp = self.conv_layer(filter_size=1, fin=1024, fout=512, din=tmp, stride=1, name="conv_5_"+str(2*i+1))
             tmp = self.conv_layer(filter_size=3, fin=512, fout=1024, din=tmp, stride=1, name="conv_5_"+str(2*i+2))
         
-        #Before pre-training
+        
         if pre_train == 1:
             pre_reshape = tf.reshape(tmp, [tf.shape(tmp)[0], 7 * 7 * 1024])
 
@@ -59,9 +71,11 @@ class Network(object):
             pre_b = tf.get_variable(name="pre_t_b", shape=[pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
             pre_t = tf.matmul(pre_reshape, pre_W) + pre_b
             return pre_t
+        
+        #Before pre-training
         #=================================================================================================================================================================================
         #After pre-training
-
+        
         tmp = self.conv_layer(filter_size=3, fin=1024, fout=1024, din=tmp, stride=1, name="conv_5_5")
         tmp = self.conv_layer(filter_size=3, fin=1024, fout=1024, din=tmp, stride=2, name="conv_5_6")
 
@@ -86,6 +100,19 @@ class Network(object):
         return model
 
     def loss(self, model):
+        """dd
+        
+        dd
+        
+        Keyword Arguments:
+            dd
+
+        Returns:
+            dd
+
+        Example:
+            >> dd
+        """
         loss = ''
         return loss
 
@@ -109,7 +136,6 @@ class Network(object):
             >> image = tf.placeholder(tf.float32, [None, 448, 448, 3])
             >> tmp = conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
         """
-
         with tf.variable_scope(name):
             W = tf.get_variable(name=name + "_W", shape=[filter_size, filter_size, fin, fout],
                                 initializer=tf.contrib.layers.xavier_initializer())
@@ -139,7 +165,6 @@ class Network(object):
             >> tmp = conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
             >> tmp = pool(din=tmp, size=2, stride=2, option="maxpool")
         """
-
         if (option == 'maxpool'):
             pool = tf.nn.max_pool(din, ksize=[1, size, size, 1], strides=[1, stride, stride, 1], padding='SAME')
         elif (option == 'avrpool'):

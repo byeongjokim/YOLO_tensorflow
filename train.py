@@ -2,18 +2,18 @@ from NN.network import Network
 import tensorflow as tf
 
 class Train(object):
-    """Train
+    """Train class
     
-    d
+    Train the YOLO Model
 
     Constructor:
-		d
+		init batch_size, learning rate, momentum
 
     Methods:
-		d
-    
+		setting
+		trainig
     """
-    
+
 	def __init__(self):
 		print("init train")
 		self.batch_size = 64
@@ -79,16 +79,16 @@ class Train(object):
 		return 1
 
 class PreTrain(object):
-    """Train
+    """PreTrain class
     
-    d
+    Pre-Train the CNN
 
     Constructor:
-		d
+		init batch_size, learning rate
 
     Methods:
-		d
-    
+		setting
+		trainig
     """
 
 	def __init__(self):

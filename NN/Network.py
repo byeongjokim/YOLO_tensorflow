@@ -99,7 +99,14 @@ class Network(object):
 
         return model
 
-    def loss(self, model):
+    def image_2_cell(self):
+        
+        return 1
+
+    def loos1(self):
+        return 1
+
+    def loss(self, model, labels):
         """dd
         
         dd
@@ -115,6 +122,12 @@ class Network(object):
         """
         loss = ''
         return loss
+
+
+    def iou(self, box1, box2):
+        x
+
+        return 1
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu

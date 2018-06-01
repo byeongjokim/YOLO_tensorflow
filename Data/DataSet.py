@@ -2,11 +2,9 @@ from xml.etree.ElementTree import parse
 import os
 import cv2
 import random
+import math
 
 class VOC2007(object):
-    image_width = 448
-    image_height = 448
-
     def __init__(self):
         print("init VOC2007 dataset")
         folder_path = "./_data/VOC2007/"
@@ -26,7 +24,7 @@ class VOC2007(object):
             self.valid_set_list.append(line)
 
     def make_dataset(self):
-        sett = {"imageName": None, "image": None, "Object": None, "x": None, "y": None, "w": None, "h": None}
+        sett = {"imageName": None, "image": None, "objects" : [{"object": None, "x": None, "y": None, "w": None, "h": None}, {"object": None, "x": None, "y": None, "w": None, "h": None}]}
 
         train_set = []
         valid_set = []
@@ -39,15 +37,31 @@ class VOC2007(object):
             fileName = os.path.splitext(image)[0]
             objects = self.parsing_xml(fileName)
 
+            obj = []
             for width, height, o, x, y, w, h in objects:
-                ratio_width = 224/width
-                ratio_height = 224/height
+                ratio_width = 448/width
+                ratio_height = 448/height
 
-                sett = {"imageName": fileName, "image": cv2.resize(cv2.imread(self.image_path+image), (self.image_width,self.image_height)), "Object": o, "x": int(x*ratio_width), "y": int(y*ratio_height), "w": round(w*ratio_width + 0.5), "h": round(h*ratio_height + 0.5)}
-                if(fileName in self.valid_set_list):
-                    valid_set.append(sett)
-                else:
-                    train_set.append(sett)
+                x = int(x * ratio_width)
+                y = int(y * ratio_height)
+                
+                cell = (int(x+1/64), int(y+1/64))
+
+                x = int(x/64 - int((x+1)/64))
+                y = int(y/64 - int((y+1)/64))
+
+                w = math.ceil((w * ratio_width)/448)
+                h = math.ceil((h * ratio_height)/448)
+
+                #bbox : x, y, w, h
+                bbox = {"object" : o, "x" : x, "y" : y, "w" : w, "h" : h}
+                obj.append(bbox)
+
+            sett = {"imageName": fileName, "image": cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "objects" : obj}
+            if(fileName in self.valid_set_list):
+                valid_set.append(sett)
+            else:
+                train_set.append(sett)
         
         '''
         test = train_set[27]
@@ -71,5 +85,11 @@ class VOC2007(object):
 
         for object in objects:
             bndbox = object.find("bndbox")
-            result.append([int(size.findtext("width")), int(size.findtext("height")), object.findtext("name"), int(bndbox.findtext("xmin")), int(bndbox.findtext("ymin")), int(bndbox.findtext("xmax")) - int(bndbox.findtext("xmin")), int(bndbox.findtext("ymax")) - int(bndbox.findtext("ymin"))])
+            result.append([int(size.findtext("width")), int(size.findtext("height")),
+                           object.findtext("name"),
+                           self.get_center(int(bndbox.findtext("xmin")), int(bndbox.findtext("xmax"))), self.get_center(int(bndbox.findtext("ymin")), int(bndbox.findtext("ymax"))),
+                           int(bndbox.findtext("xmax")) - int(bndbox.findtext("xmin")), int(bndbox.findtext("ymax")) - int(bndbox.findtext("ymin"))])
         return result
+
+    def get_center(self, xmin, xmax):
+        return int((xmin + xmax)/2)

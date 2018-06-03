@@ -99,20 +99,18 @@ class Network(object):
 
         return model
 
-    def image_2_cell(self):
-        
-        return 1
 
     def loos1(self):
         return 1
 
-    def loss(self, model, labels):
+    def cal_loss(self, models, labels):
         """dd
         
         dd
         
         Keyword Arguments:
-            dd
+            models (4-D tensor): [batch_size, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box]
+            labels (3-D tensor): [batch_size, num_obj, 7] #[x, y, w, h, cls, cellx, celly]
 
         Returns:
             dd
@@ -120,8 +118,26 @@ class Network(object):
         Example:
             >> dd
         """
+
+        for i in batch_size:
+            model = models[i, :, :, :]
+            label = labels[i, :, :]
+            
+
+
+
         loss = ''
         return loss
+
+    def get_minxy_maxxy_forIOU(self, cood):
+        #cood = [x, y, w, h]
+        x = 
+        w = 448 * cood[2]
+        h = 448 * cood[1]
+
+
+
+
 
 
     def iou(self, box1, box2):

@@ -12,6 +12,13 @@ class VOC2007(object):
         self.image_path = folder_path + "JPEGImages/"
         self.valid_set_path = folder_path + "trainval.txt"
 
+        self.classes = [
+            "aeroplane", "bicycle", "bird", "boat", "bottle",
+            "bus", "car", "cat", "chair", "cow",
+            "diningtable", "dog", "horse", "motorbike", "person",
+            "pottedplant", "sheep", "sofa", "train", "tvmonitor"
+        ]
+
         self.make_valid_list()
 
     def make_valid_list(self):
@@ -24,12 +31,10 @@ class VOC2007(object):
             self.valid_set_list.append(line)
 
     def make_dataset(self):
-        sett = {"imageName": None, "image": None, "objects" : [{"object": None, "x": None, "y": None, "w": None, "h": None}, {"object": None, "x": None, "y": None, "w": None, "h": None}]}
+        sett = {"imageName": None, "image": None, "objects" : [{"object": None, "cell": None, "x": None, "y": None, "w": None, "h": None}, {"object": None, "cell": None, "x": None, "y": None, "w": None, "h": None}]}
 
         train_set = []
         valid_set = []
-
-        test_set = []
 
         images = os.listdir(self.image_path)
 
@@ -44,25 +49,24 @@ class VOC2007(object):
 
                 x = int(x * ratio_width)
                 y = int(y * ratio_height)
+                w = int(w * ratio_width)
+                h = int(h * ratio_height)
+
+                x, y, w, h, cell = self.get_xywh_forTraining(x, y, w, h)
                 
-                cell = (int(x+1/64), int(y+1/64))
-
-                x = int(x/64 - int((x+1)/64))
-                y = int(y/64 - int((y+1)/64))
-
-                w = math.ceil((w * ratio_width)/448)
-                h = math.ceil((h * ratio_height)/448)
-
                 #bbox : x, y, w, h
-                bbox = {"object" : o, "x" : x, "y" : y, "w" : w, "h" : h}
+                bbox = {"object" : self.classes.index(o), "cell" : cell, "x" : x, "y" : y, "w" : w, "h" : h}
+
                 obj.append(bbox)
 
             sett = {"imageName": fileName, "image": cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "objects" : obj}
-            if(fileName in self.valid_set_list):
-                valid_set.append(sett)
-            else:
-                train_set.append(sett)
-        
+
+        if(fileName in self.valid_set_list):
+            valid_set.append(sett)
+        else:
+            train_set.append(sett)
+
+
         '''
         test = train_set[27]
         print(test["imageName"])
@@ -93,3 +97,14 @@ class VOC2007(object):
 
     def get_center(self, xmin, xmax):
         return int((xmin + xmax)/2)
+
+    def get_xywh_forTraining(self, x, y, w, h):
+        cell = (int(x/64), int(y/64))
+
+        x = (x - cell[0] * 64)/64
+        y = (y - cell[1] * 64)/64
+
+        w = w/448
+        h = h/448
+
+        return x, y, w, h, cell

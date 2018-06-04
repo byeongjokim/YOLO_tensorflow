@@ -14,13 +14,16 @@ class Network(object):
         conv_layer
         pool
     """
-	def __init__(self):
-		print("init Network Model")
+    def __init__(self):
+        print("init Network Model")
+        self.pre_num_label = 20
         self.cell_size = 7
         self.num_label = 20
         self.num_box = 2
 
-	def model(self, image, pre_train=0):
+        self.batch_size = 2
+
+    def model(self, image, pre_train=0):
         """Returns the network model of Yolo
         
         This model is not the fast yolo but the simple yolo.
@@ -38,6 +41,7 @@ class Network(object):
         
         Example:
             >> image = cv2.resize(cv2.imread("path/to/image.jpg"), (448, 448))
+            >> asdasdas
             >> predict_model = model(image)
         """
         tmp = self.conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
@@ -67,8 +71,8 @@ class Network(object):
         if pre_train == 1:
             pre_reshape = tf.reshape(tmp, [tf.shape(tmp)[0], 7 * 7 * 1024])
 
-            pre_W = tf.get_variable(name="pre_t_W", shape=[7 * 7 * 1024, pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
-            pre_b = tf.get_variable(name="pre_t_b", shape=[pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
+            pre_W = tf.get_variable(name="pre_t_W", shape=[7 * 7 * 1024, self.pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
+            pre_b = tf.get_variable(name="pre_t_b", shape=[self.pre_num_label], initializer=tf.contrib.layers.xavier_initializer())
             pre_t = tf.matmul(pre_reshape, pre_W) + pre_b
             return pre_t
         
@@ -99,18 +103,19 @@ class Network(object):
 
         return model
 
+    def cond(self, num, num_label, label, model, loss):
+        return num < num_label
 
-    def loos1(self):
-        return 1
 
-    def cal_loss(self, models, labels):
+
+    def cal_loss_obj(self, l, m):
         """dd
         
         dd
         
         Keyword Arguments:
-            models (4-D tensor): [batch_size, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box]
-            labels (3-D tensor): [batch_size, num_obj, 7] #[x, y, w, h, cls, cellx, celly]
+            l (1-D tensor): [7] => [x, y, w, h, cls, cellx, celly]
+            m (1-D tensor): [32] => [x, y, w, h, c, x, y, w, h, c, 20classes, j, i]
 
         Returns:
             dd
@@ -118,32 +123,115 @@ class Network(object):
         Example:
             >> dd
         """
+        box_l = tf.stack([l[:4], l[:4]])
+        box_p = tf.stack([m[:4], m[5:9]])
 
-        for i in batch_size:
+        con_l = self.iou(box_l, box_p, m[-2:])
+        con_p = tf.stack([m[4], m[9]])
+
+        cls_l = tf.one_hot(tf.cast(l[4], tf.int32), 20)
+        cls_p = m[10:30]
+        
+        box_l = tf.concat([box_l[:, :2], tf.sqrt(box_l[:, 2:])], 1)
+        box_p = tf.concat([box_p[:, :2], tf.sqrt(box_p[:, 2:])], 1)
+
+        loss_box = tf.reduce_sum(tf.pow(tf.subtract(box_l, box_p), 2))
+        loss_con = tf.reduce_sum(tf.pow(tf.subtract(con_l, con_p), 2))
+        loss_cls = tf.nn.softmax_cross_entropy_with_logits(labels=cls_l, logits=cls_p)
+
+        return tf.add(tf.multiply(tf.add(loss_box, loss_con), 5), loss_cls)
+
+    def cal_loss_nobj(self, l, m):
+        """
+        Keyword Arguments:
+            l (1-D tensor): [7]
+            m (1-D tensor): [32]
+        """
+        box_l = tf.stack([l[:4], l[:4]])
+        box_p = tf.stack([m[:4], m[5:9]])
+
+        con_l = self.iou(box_l, box_p, m[-2:])
+        con_p = tf.stack([m[4], m[9]])
+
+        loss_con = tf.reduce_sum(tf.pow(tf.subtract(con_l, con_p), 2))
+
+        return 0.5 * loss_con
+
+    def iou(self, box_l, box_p, location):
+        """
+        Keyword Arguments:
+            box_l (2-D tensor): [2, 4] => [x, y, w, h] * 2
+            box_p (2-D tensor): [2, 4] => [[x, y, w, h], [x, y, w, h]]
+            location (1-d tensor): [2] => [j, i]
+        
+        Returns:
+            iou (1-D tensor): [2]
+        """
+        
+        l = tf.concat([(box_l[:, :2] + location)*64, box_l[:, 2:4]*448], 1) #=> [realx, realy, realw, realh] * 2
+        p = tf.concat([(box_p[:, :2] + location)*64, box_p[:, 2:4]*448], 1) #=> [[realx, realy, realw, realh], [realx, realy, realw, realh]]
+
+        ll = tf.stack([box_l[:, 0] - box_l[:, 2]/2, box_l[:, 1] - box_l[:, 3]/2, box_l[:, 0] + box_l[:, 2]/2, box_l[:, 1] + box_l[:, 3]/2], 1) #=> [xmin, ymin, xmax, ymax] * 2
+        pp = tf.stack([box_p[:, 0] - box_p[:, 2]/2, box_p[:, 1] - box_p[:, 3]/2, box_p[:, 0] + box_p[:, 2]/2, box_p[:, 1] + box_p[:, 3]/2], 1) #=> [[xmin, ymin, xmax, ymax], [xmin, ymin, xmax, ymax]]
+
+        intersection = tf.stack([
+                            tf.maximum(ll[:, 0], pp[:, 0]),
+                            tf.maximum(ll[:, 1], pp[:, 1]),
+                            tf.minimum(ll[:, 2], pp[:, 2]),
+                            tf.minimum(ll[:, 3], pp[:, 3])
+                        ], 1)
+
+        area_intersection = tf.multiply(tf.subtract(intersection[:,2], intersection[:,0]), tf.subtract(intersection[:,3], intersection[:,1]))
+        area_ll = tf.multiply(tf.subtract(ll[:,2], ll[:,0]), tf.subtract(ll[:,3], ll[:,1]))
+        area_pp = tf.multiply(tf.subtract(pp[:,2], pp[:,0]), tf.subtract(pp[:,3], pp[:,1]))
+
+        area_union = tf.subtract(tf.add(area_ll, area_pp), area_intersection)
+        iou = tf.nn.relu(area_intersection/area_union)
+        return iou
+
+    def body(self, num, num_label, label, model, loss):
+        for i in range(7):
+            for j in range(7):
+                m = tf.concat([model[i][j], [j,i]], 0) #=> [x, y, w, h, c, x, y, w, h, c, 20classes, j, i]
+                l = tf.cond(
+                                tf.equal(tf.constant(i, tf.float32), label[num][6]) & tf.equal(tf.constant(j, tf.float32), label[num][5]),
+                                lambda: self.cal_loss_obj(label[num], m),
+                                lambda: self.cal_loss_nobj(label[num], m)
+                            )
+                loss = tf.add(loss, l)
+
+        return num+1, num_label, label, model, loss
+
+    def loss(self, labels, models):
+        """dd
+        
+        dd
+        
+        Keyword Arguments:
+            labels (3-D tensor): [batch_size, 20, 7] # 7 => [x, y, w, h, cls, cellx, celly]
+            models (4-D tensor): [batch_size, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box]
+
+        Returns:
+            dd
+
+        Example:
+            >> dd
+        """        
+        num_label = tf.constant(self.num_label)
+        num = tf.constant(0)
+
+        loss = tf.constant(0, tf.float32)
+
+        for i in range(self.batch_size):
             model = models[i, :, :, :]
             label = labels[i, :, :]
             
+            loss_result = tf.while_loop(cond=self.cond, body=self.body, loop_vars=[num, num_label, label, model, loss])
+            loss = tf.add(loss, loss_result[4])
 
-
-
-        loss = ''
         return loss
 
-    def get_minxy_maxxy_forIOU(self, cood):
-        #cood = [x, y, w, h]
-        x = 
-        w = 448 * cood[2]
-        h = 448 * cood[1]
 
-
-
-
-
-
-    def iou(self, box1, box2):
-        x
-
-        return 1
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu

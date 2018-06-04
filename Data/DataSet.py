@@ -6,6 +6,19 @@ import math
 import numpy as np
 
 class VOC2007(object):
+    """VOC2007 class
+    
+    Make DataSet for YOLO with VOC2007
+
+    Constructor:
+        init folder, image, xml path and make validset list
+
+    Methods:
+        make_valid_list
+        make_dataset
+        parsing_xml
+        get_xywh_forTraining
+    """
     def __init__(self):
         print("init VOC2007 dataset")
         folder_path = "./_data/VOC2007/"
@@ -54,13 +67,13 @@ class VOC2007(object):
         train_set = []
         valid_set = []
 
-        images = os.listdir(self.image_path)
+        images = os.listdir(self.image_path)[:10]
 
         for image in images:
             fileName = os.path.splitext(image)[0]
             objects = self.parsing_xml(fileName)
 
-            Y = np.zeros((20, 7))
+            Y = np.zeros((20, 7)) - 1
             obj = []
             for width, height, o, x, y, w, h in objects:
                 ratio_width = 448/width
@@ -83,7 +96,6 @@ class VOC2007(object):
                 train_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y})
 
         return train_set, valid_set
-
 
     def parsing_xml(self, fileName):
         """Parsing the xml

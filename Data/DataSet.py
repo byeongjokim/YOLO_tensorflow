@@ -3,6 +3,7 @@ import os
 import cv2
 import random
 import math
+import numpy as np
 
 class VOC2007(object):
     def __init__(self):
@@ -22,6 +23,12 @@ class VOC2007(object):
         self.make_valid_list()
 
     def make_valid_list(self):
+        """Make valid set list from trainval.txt
+        
+        To make valid set, parsing the trainval.txt and make a list.
+        Save that lit in self.valid_set_list.
+        This method will run at declaring the VOC2007 class.
+        """
         self.valid_set_list = []
         f = open(self.valid_set_path, "r")
         while True:
@@ -31,8 +38,19 @@ class VOC2007(object):
             self.valid_set_list.append(line)
 
     def make_dataset(self):
-        sett = {"imageName": None, "image": None, "objects" : [{"object": None, "cell": None, "x": None, "y": None, "w": None, "h": None}, {"object": None, "cell": None, "x": None, "y": None, "w": None, "h": None}]}
-
+        """Make DataSet for training and validating
+        
+        parsing the folders, make dataset
+        
+        Returns:
+            train_set (Dictionary list): {X: image, Y:[x, y, w, h, cls, cellx, celly]}
+            valid_set (Dictionary list): {X: image, Y:[x, y, w, h, cls, cellx, celly]}
+        
+        Example:
+            >> data = VOC2007()
+            >> train_set, valid_set = data.make_dataset()
+        """
+        
         train_set = []
         valid_set = []
 
@@ -42,6 +60,7 @@ class VOC2007(object):
             fileName = os.path.splitext(image)[0]
             objects = self.parsing_xml(fileName)
 
+            Y = np.zeros((20, 7))
             obj = []
             for width, height, o, x, y, w, h in objects:
                 ratio_width = 448/width
@@ -53,33 +72,30 @@ class VOC2007(object):
                 h = int(h * ratio_height)
 
                 x, y, w, h, cell = self.get_xywh_forTraining(x, y, w, h)
-                
-                #bbox : x, y, w, h
-                bbox = {"object" : self.classes.index(o), "cell" : cell, "x" : x, "y" : y, "w" : w, "h" : h}
+                obj = [x, y, w, h, self.classes.index(o), cell[0], cell[1]]
+            
+                Y[self.classes.index(o)] = obj
 
-                obj.append(bbox)
+            if(fileName in self.valid_set_list):
+                valid_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y})
 
-            sett = {"imageName": fileName, "image": cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "objects" : obj}
-
-        if(fileName in self.valid_set_list):
-            valid_set.append(sett)
-        else:
-            train_set.append(sett)
-
-
-        '''
-        test = train_set[27]
-        print(test["imageName"])
-        print(test["Object"])
-        cv2.rectangle(test["image"], (test["x"], test["y"]), (test["x"]+test["w"], test["y"]+test["h"]), (0,255,0), 3)
-        cv2.imshow("asd", test["image"])
-        cv2.waitKey(0)
-        '''
+            else:
+                train_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y})
 
         return train_set, valid_set
 
 
     def parsing_xml(self, fileName):
+        """Parsing the xml
+        
+        Parsing xml file, Get data
+        
+        Keyword Arguments:
+            fileName (string): xml fileName for parsing
+        
+        Returns:
+            result (array): [7]
+        """
         result = []
 
         tree = parse(self.xml_path + fileName + ".xml")
@@ -96,9 +112,35 @@ class VOC2007(object):
         return result
 
     def get_center(self, xmin, xmax):
+        """Calculate the center of point with min and max
+        
+        int( (min + max) / 2 )
+        
+        Keyword Arguments:
+            xmin (int): min of point
+            xmax (int): max of point
+
+        Returns:
+            center_point (int): center of point
+        """
         return int((xmin + xmax)/2)
 
     def get_xywh_forTraining(self, x, y, w, h):
+        """Calculate the x, y, w, h and cell
+        
+        x, y, w, h, cell for training YOLO
+
+        Keyword Arguments:
+            x (int): x of center
+            y (int): y of center
+            w (int): width of object
+            h (int): height of object
+
+        Returns:
+            x, y (float): 0 ~ 1 in the cell
+            w, h (float): 0 ~ 1 compare the object
+            cell (int, int): location of the object
+        """
         cell = (int(x/64), int(y/64))
 
         x = (x - cell[0] * 64)/64

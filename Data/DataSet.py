@@ -73,7 +73,7 @@ class VOC2007(object):
             fileName = os.path.splitext(image)[0]
             objects = self.parsing_xml(fileName)
 
-            Y = np.zeros((20, 7)) - 1
+            Y = np.zeros((20, 7))
             obj = []
             for width, height, o, x, y, w, h in objects:
                 ratio_width = 448/width
@@ -84,9 +84,12 @@ class VOC2007(object):
                 w = int(w * ratio_width)
                 h = int(h * ratio_height)
 
+                """
                 x, y, w, h, cell = self.get_xywh_forTraining(x, y, w, h)
                 obj = [x, y, w, h, self.classes.index(o), cell[0], cell[1]]
-            
+                """
+                obj = [x, y, w, h, self.classes.index(o)]
+                
                 Y[self.classes.index(o)] = obj
 
             if(fileName in self.valid_set_list):

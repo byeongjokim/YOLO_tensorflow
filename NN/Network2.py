@@ -103,11 +103,62 @@ class Network(object):
 
         return model
 
+    def confidence_loss(self, l, m):
+        j = tf.cast(l[0]/64, tf.int32)
+        i = tf.cast(l[1]/64, tf.int32)
+        
+        return 1
+
+    def coordinate_loss(self, l, m):
+        j = tf.cast(l[0]/64, tf.int32)
+        i = tf.cast(l[1]/64, tf.int32)
+
+        xy_l = tf.mod(l[:2], 64)/64
+        wh_l = tf.sqrt(l[2:4]/448)
+        coord_l = tf.concat([xy_l, wh_l], 0)
+        coord_l = tf.concat([coord_l, coord_l], 0)
+
+        xywh_m_1 = m[i, j, :4]
+        xywh_m_2 = m[i, j, 4:]
+        coord_m = tf.concat([xywh_m_1[:2], tf.sqrt(xywh_m_1[2:]), xywh_m_2[:2], tf.sqrt(xywh_m_2[2:])], 0)
+
+        return tf.reduce_sum(tf.pow(tf.subtract(coord_l, coord_m), 2))
+
+    def class_loss(self, l, m):
+        j = tf.cast(l[0]/64, tf.int32)
+        i = tf.cast(l[1]/64, tf.int32)
+
+        cls_l = tf.one_hot(tf.cast(l[4], tf.int32), 20)
+        cls_m = tf.nn.softmax(m[i, j, :])
+
+        return tf.reduce_sum(tf.pow(tf.subtract(cls_l, cls_m), 2))
 
     def cond(self):
         return 1
 
-    def body(self):
+    def body(self, label, model):
+        """dd
+        
+        dd
+        
+        Keyword Arguments:
+            label (1-D tensor): [5] #=> [x, y, w, h, cls]
+            model (3-D tensor): [self.cell_size, self.cell_size, self.num_label + 5 * self.num_box] #=> [7, 7, 30]
+
+        Returns:
+            dd
+
+        Example:
+            >> dd
+        """
+
+        model_xywhxywh = tf.concat([model[:,:,:4], model[:,:,5:9]], 2)
+        self.confidence_loss(label[:4], model_xywhxywh)
+        self.coordinate_loss(label[:4], model_xywhxywh)
+
+        self.class_loss(label, model[:, :, 10:])
+
+
         return 1
 
 
@@ -117,7 +168,7 @@ class Network(object):
         dd
         
         Keyword Arguments:
-            labels (3-D tensor): [batch_size, 20, 7] # 7 => [x, y, w, h, cls, cellx, celly]
+            labels (3-D tensor): [batch_size, 20, 5] #=> [x, y, w, h, cls]
             models (4-D tensor): [batch_size, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box] #=> [batch_size, 7, 7, 30]
 
         Returns:

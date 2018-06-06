@@ -103,11 +103,69 @@ class Network(object):
 
         return model
 
-    def confidence_loss(self, l, m):
-        j = tf.cast(l[0]/64, tf.int32)
-        i = tf.cast(l[1]/64, tf.int32)
+    def confidence_loss(self, l, m, c_m):
+        j = tf.cast(tf.floor(l[0]/64), tf.int32)
+        i = tf.cast(tf.floor(l[1]/64), tf.int32)
         
-        return 1
+        l_min_x = l[0] - l[2]/2
+        l_min_y = l[1] - l[3]/2
+        l_max_x = l[0] + l[2]/2
+        l_max_y = l[1] + l[3]/2
+
+        box_l = tf.stack([l_min_x, l_min_y, l_max_x, l_max_y], 0)
+
+        ratio = tf.constant([64.0, 64.0, 448.0, 448.0, 64.0, 64.0, 448.0, 448.0])
+        location = tf.stack([tf.cast(j, tf.float32), tf.cast(i, tf.float32), 0.0, 0.0, tf.cast(j, tf.float32), tf.cast(i, tf.float32), 0.0, 0.0], 0)
+        mm = tf.multiply(tf.add(m[j,i,:], location), ratio)
+        mm = tf.stack([mm[:4], mm[4:]], 0)
+
+        m_min_x = mm[:, 0] - mm[:, 2]/2
+        m_min_y = mm[:, 1] - mm[:, 3]/2
+        m_max_x = mm[:, 0] + mm[:, 2]/2
+        m_max_y = mm[:, 1] + mm[:, 3]/2
+
+        box_m = tf.stack([m_min_x, m_min_y, m_max_x, m_max_y], 1)
+
+        iou_l = self.iou(box_l, box_m)
+
+        c_l = tf.stack([
+            tf.pad([[iou_l[0]]], [[j,6-j],[i,6-i]], "CONSTANT"),
+            tf.pad([[iou_l[1]]], [[j,6-j],[i,6-i]], "CONSTANT")
+            ], 2)
+        
+        lambda_noobj = tf.add(
+                                tf.zeros([7,7,2], tf.float32)+0.5,
+                                tf.stack([
+                                    tf.pad([[0.5]], [[j,6-j],[i,6-i]], "CONSTANT"),
+                                    tf.pad([[0.5]], [[j,6-j],[i,6-i]], "CONSTANT")
+                                ], 2)
+                            )
+
+        return tf.reduce_sum(tf.multiply(tf.pow(tf.subtract(c_l, c_m), 2), lambda_noobj))
+
+    def iou(self, box_l, box_m):
+        """
+        Keyword Arguments:
+            box_l (2-D tensor): [4] => [min_x, min_y, max_x, max_y]
+            box_p (2-D tensor): [2, 4] => [[min_x, min_y, max_x, max_y], [min_x, min_y, max_x, max_y]]
+        
+        Returns:
+            iou (1-D tensor): [2]
+        """
+        intersection = tf.stack([
+                                    tf.maximum(box_l[0], box_m[:, 0]),
+                                    tf.maximum(box_l[1], box_m[:, 1]),
+                                    tf.minimum(box_l[2], box_m[:, 2]),
+                                    tf.minimum(box_l[3], box_m[:, 3])
+                                ], 1)
+        area_intersection = tf.multiply(tf.subtract(intersection[:,2], intersection[:,0]), tf.subtract(intersection[:,3], intersection[:,1]))
+
+        area_l = tf.multiply(tf.subtract(box_l[2], box_l[0]), tf.subtract(box_l[3], box_l[1]))
+        area_m = tf.multiply(tf.subtract(box_m[:,2], box_m[:,0]), tf.subtract(box_m[:,3], box_m[:,1]))
+        
+        area_union = tf.subtract(tf.add(area_l, area_m), area_intersection)
+
+        return tf.nn.relu(area_intersection/area_union)
 
     def coordinate_loss(self, l, m):
         j = tf.cast(l[0]/64, tf.int32)
@@ -133,10 +191,10 @@ class Network(object):
 
         return tf.reduce_sum(tf.pow(tf.subtract(cls_l, cls_m), 2))
 
-    def cond(self):
-        return 1
+    def cond(self, num, num_label, label, model, loss):
+        return num < num_label
 
-    def body(self, label, model):
+    def body(self, num, num_label, labels, model, loss):
         """dd
         
         dd
@@ -152,17 +210,21 @@ class Network(object):
             >> dd
         """
 
-        model_xywhxywh = tf.concat([model[:,:,:4], model[:,:,5:9]], 2)
-        self.confidence_loss(label[:4], model_xywhxywh)
-        self.coordinate_loss(label[:4], model_xywhxywh)
+        label = labels[num, :]
+        model_xywhxywh = tf.concat([model[:, :, :4], model[:, :, 5:9]], 2)
+        model_c = tf.stack([model[:,:,4], model[:,:,9]], 2)
+        model_cls = model[:, :, 10:]
 
-        self.class_loss(label, model[:, :, 10:])
+        confi_loss = self.confidence_loss(label[:4], model_xywhxywh, model_c)
+        coord_loss = self.coordinate_loss(label[:4], model_xywhxywh)
+        cls_loss = self.class_loss(label, model_cls)
+
+        loss = loss + tf.add_n([confi_loss, coord_loss, cls_loss])
+
+        return num + 1, num_label, labels, model, loss
 
 
-        return 1
-
-
-    def loss(self, labels, models):
+    def loss(self, labels, models, num_object):
         """dd
         
         dd
@@ -185,10 +247,12 @@ class Network(object):
         for i in range(self.batch_size):
             model = models[i, :, :, :]
             label = labels[i, :, :]
+            num_label = num_object[i]
             
-            loss_result = tf.while_loop(cond=self.cond, body=self.body, loop_vars=[num, num_label, label, model, loss])
-            loss = tf.add(loss, loss_result[4])
+            while_result = tf.while_loop(cond=self.cond, body=self.body, loop_vars=[num, num_label, label, model, loss])
+            loss = tf.add(loss, while_result[4])
 
+        print(loss)
         return loss
 
 

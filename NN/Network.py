@@ -160,7 +160,7 @@ class Network(object):
     def iou(self, box_l, box_p, location):
         """
         Keyword Arguments:
-            box_l (2-D tensor): [2, 4] => [x, y, w, h] * 2
+            box_l (2-D tensor): [4] => [min_x, min_y, max_x, max_y]
             box_p (2-D tensor): [2, 4] => [[x, y, w, h], [x, y, w, h]]
             location (1-d tensor): [2] => [j, i]
         

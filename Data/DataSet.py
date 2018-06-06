@@ -73,8 +73,9 @@ class VOC2007(object):
             fileName = os.path.splitext(image)[0]
             objects = self.parsing_xml(fileName)
 
-            Y = np.zeros((20, 7))
+            Y = np.zeros((20, 5))
             obj = []
+            num_object = len(objects)
             for width, height, o, x, y, w, h in objects:
                 ratio_width = 448/width
                 ratio_height = 448/height
@@ -93,10 +94,10 @@ class VOC2007(object):
                 Y[self.classes.index(o)] = obj
 
             if(fileName in self.valid_set_list):
-                valid_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y})
+                valid_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y, "num_object" : num_object})
 
             else:
-                train_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y})
+                train_set.append({"X" : cv2.resize(cv2.imread(self.image_path+image), (448, 448)), "Y" : Y, "num_object" : num_object})
 
         return train_set, valid_set
 

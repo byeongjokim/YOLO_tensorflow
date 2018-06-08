@@ -202,7 +202,7 @@ class Network(object):
 
         return num+1, num_label, label, model, loss
 
-    def loss(self, labels, models):
+    def get_loss(self, labels, models):
         """dd
         
         dd

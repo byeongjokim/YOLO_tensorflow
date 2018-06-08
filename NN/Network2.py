@@ -21,7 +21,7 @@ class Network(object):
         self.num_label = 20
         self.num_box = 2
 
-        self.batch_size = 2
+        self.batch_size = 1
 
     def model(self, image, pre_train=0):
         """Returns the network model of Yolo

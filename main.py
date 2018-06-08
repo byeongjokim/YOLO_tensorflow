@@ -52,15 +52,11 @@ def loss_test():
     Y = np.zeros((1, 20, 5))
     Y[0][0] = [int((156+351)*ratio_width/2), int((97+270)*ratio_height/2), int((351-156)*ratio_width), int((270-97)*ratio_height), classes.index("car")]
     
-    o = [6]
+    o = [1]
 
     image = tf.placeholder(tf.float32, [None, 448, 448, 3])
     label = tf.placeholder(tf.float32, [None, 20, 5])
     num_object = tf.placeholder(tf.int32, [None])
-
-    #labels = tf.placeholder(tf.float32, [1, 20, 5])
-	#models = tf.placeholder(tf.float32, [1, 7, 7, 30])
-	#num_object = tf.placeholder(tf.int32, [1])
 
     network = Network()
     model = network.model(image)
@@ -69,6 +65,7 @@ def loss_test():
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    print(sess.run(tf.shape(model), feed_dict={image:X, label:Y, num_object:o}))
     print(sess.run(loss, feed_dict={image:X, label:Y, num_object:o}))
 
 def loss_test2():

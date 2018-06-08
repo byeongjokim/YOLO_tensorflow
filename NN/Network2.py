@@ -225,7 +225,8 @@ class Network(object):
         
         cls_loss = self.class_loss(label, model_cls)
         
-        loss = tf.add(loss, tf.add_n([cls_loss, coord_loss, confi_loss]))
+        #loss = tf.add(loss, tf.add_n([cls_loss, coord_loss, confi_loss]))
+        loss = tf.add(loss, [cls_loss, coord_loss, confi_loss])
         return num+1, num_label, labels, model, loss
 
 
@@ -246,6 +247,7 @@ class Network(object):
         """        
         num = tf.constant(0)
         loss = tf.constant(0.0)
+        loss = tf.constant([0.0, 0.0, 0.0])
 
         for i in range(self.batch_size):
             label = labels[i, :, :]
@@ -255,8 +257,7 @@ class Network(object):
             while_result = tf.while_loop(cond=self.cond, body=self.body, loop_vars=[num, num_label, label, model, loss])
             loss = tf.add(loss, while_result[4])
 
-        print(loss)
-        return loss
+        return while_result
 
 
 

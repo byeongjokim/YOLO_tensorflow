@@ -10,8 +10,15 @@ class Network(object):
         init cell size(default is 7), number of label(default is 20 in VOC2007), number of box(default is 2)
 
     Methods:
+        set_batch_size
         model
-        loss
+        confidence_loss
+        iou
+        coordinate_loss
+        class_loss
+        cond
+        body
+        get_loss
         conv_layer
         pool
     """
@@ -24,6 +31,13 @@ class Network(object):
         self.num_box = 2
 
     def set_batch_size(self, batch_size):
+        """set batch size
+
+        Set batch size
+
+        Keyword Arguments:
+            batch_size (int): batch size of model when training
+        """
         self.batch_size = batch_size
 
     def model(self, image, pre_train=0):

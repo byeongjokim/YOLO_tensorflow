@@ -1,5 +1,5 @@
 from Data.DataSet import *
-from NN.Network2 import *
+from NN.Network import *
 import tensorflow as tf
 import cv2
 import numpy as np
@@ -59,45 +59,51 @@ def loss_test():
     num_object = tf.placeholder(tf.int32, [None])
 
     network = Network()
+    network.set_batch_size(X.shape[0])
     model = network.model(image)
-    print(model)
+    
     loss = network.get_loss(label, model, num_object)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
-    print(sess.run(tf.shape(model), feed_dict={image:X, label:Y, num_object:o}))
+    
+    #print(sess.run(model, feed_dict={image:X, label:Y, num_object:o}))
     print(sess.run(loss, feed_dict={image:X, label:Y, num_object:o}))
 
 def loss_test2():
-	classes = [
+    classes = [
 	            "aeroplane", "bicycle", "bird", "boat", "bottle",
 	            "bus", "car", "cat", "chair", "cow",
 	            "diningtable", "dog", "horse", "motorbike", "person",
 	            "pottedplant", "sheep", "sofa", "train", "tvmonitor"
 	        ]
 
-	min_x = 156
-	min_y = 97
-	max_x = 351
-	max_y = 270
-	width = 500
-	height = 333
-	ratio_width = 448/width
-	ratio_height = 448/height
+    min_x = 156
+    min_y = 97
+    max_x = 351
+    max_y = 270
+    width = 500
+    height = 333
+    ratio_width = 448/width
+    ratio_height = 448/height
 
-	m = np.random.rand(1, 7, 7, 30)
-	l = np.zeros((1, 20, 5))
-	l[0][0] = [int((156+351)*ratio_width/2), int((97+270)*ratio_height/2), int((351-156)*ratio_width), int((270-97)*ratio_height), classes.index("car")]
-	l[0][1] = [int((156+234)*ratio_width/2), int((123+270)*ratio_height/2), int((323-156)*ratio_width), int((270-147)*ratio_height), classes.index("bird")]
-	o = [2]
+    m = np.random.rand(1, 7, 7, 30)
+    l = np.zeros((1, 20, 5))
+    l[0][0] = [int((156+351)*ratio_width/2), int((97+270)*ratio_height/2), int((351-156)*ratio_width), int((270-97)*ratio_height), classes.index("car")]
+    l[0][1] = [int((156+234)*ratio_width/2), int((123+270)*ratio_height/2), int((323-156)*ratio_width), int((270-147)*ratio_height), classes.index("bird")]
+    o = [2]
 
-	labels = tf.placeholder(tf.float32, [1, 20, 5])
-	models = tf.placeholder(tf.float32, [1, 7, 7, 30])
-	num_object = tf.placeholder(tf.int32, [1])
-	
-	network = Network()
-	loss = network.get_loss(labels, models, num_object)
-	sess = tf.Session()
-	print(sess.run(loss, feed_dict={models:m, labels:l, num_object:o}))
+    labels = tf.placeholder(tf.float32, [1, 20, 5])
+    models = tf.placeholder(tf.float32, [1, 7, 7, 30])
+    num_object = tf.placeholder(tf.int32, [1])
+
+    network = Network()
+    network.set_batch_size(m.shape[0])
+
+    loss = network.get_loss(labels, models, num_object)
+
+    sess = tf.Session()
+    print(m)
+    print(sess.run(loss, feed_dict={models:m, labels:l, num_object:o}))
 
 loss_test()

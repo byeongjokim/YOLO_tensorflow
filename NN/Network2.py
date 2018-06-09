@@ -21,7 +21,8 @@ class Network(object):
         self.num_label = 20
         self.num_box = 2
 
-        self.batch_size = 1
+    def set_batch_size(self, batch_size):
+        self.batch_size = batch_size
 
     def model(self, image, pre_train=0):
         """Returns the network model of Yolo
@@ -225,8 +226,7 @@ class Network(object):
         
         cls_loss = self.class_loss(label, model_cls)
         
-        #loss = tf.add(loss, tf.add_n([cls_loss, coord_loss, confi_loss]))
-        loss = tf.add(loss, [cls_loss, coord_loss, confi_loss])
+        loss = tf.add(loss, tf.add_n([cls_loss, coord_loss, confi_loss]))
         return num+1, num_label, labels, model, loss
 
 
@@ -236,7 +236,7 @@ class Network(object):
         dd
         
         Keyword Arguments:
-            labels (3-D tensor): [batch_size, 20, 5] #=> [x, y, w, h, cls]
+            labels (3-D tensor): [batch_size, 20, 5] #5=> [x, y, w, h, cls]
             models (4-D tensor): [batch_size, self.cell_size, self.cell_size, self.num_label + 5 * self.num_box] #=> [batch_size, 7, 7, 30]
 
         Returns:
@@ -247,7 +247,6 @@ class Network(object):
         """        
         num = tf.constant(0)
         loss = tf.constant(0.0)
-        loss = tf.constant([0.0, 0.0, 0.0])
 
         for i in range(self.batch_size):
             label = labels[i, :, :]

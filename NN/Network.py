@@ -191,7 +191,7 @@ class Network(object):
 
         xywh_m_1 = m[i, j, :4]
         xywh_m_2 = m[i, j, 4:]
-        coord_m = tf.concat([xywh_m_1[:2], tf.sqrt(xywh_m_1[2:]), xywh_m_2[:2], tf.sqrt(xywh_m_2[2:])], 0)
+        coord_m = tf.concat([xywh_m_1[:2], tf.sqrt(tf.maximum(0.0, xywh_m_1[2:])), xywh_m_2[:2], tf.sqrt(tf.maximum(0.0, xywh_m_2[2:]))], 0)
 
         return tf.reduce_sum(tf.pow(tf.subtract(coord_l, coord_m), 2))
 
@@ -225,7 +225,8 @@ class Network(object):
 
         label = labels[num, :]
 
-        model_xywhxywh = tf.nn.relu(tf.concat([model[:, :, :4], model[:, :, 5:9]], 2))
+        #model_xywhxywh = tf.nn.relu(tf.concat([model[:, :, :4], model[:, :, 5:9]], 2))
+        model_xywhxywh = tf.concat([model[:, :, :4], model[:, :, 5:9]], 2)
         model_c = tf.stack([model[:, :, 4], model[:, :, 9]], 2)
         model_cls = model[:, :, 10:]
 

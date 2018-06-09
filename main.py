@@ -74,8 +74,6 @@ def loss_test2():
     data = VOC2007()
     train_set, valid_set = data.make_dataset()
 
-    train_set = train_set[:2]
-
     X = [i["X"] for i in train_set]
     Y = [i["Y"] for i in train_set]
     o = [i["num_object"] for i in train_set]

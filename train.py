@@ -18,7 +18,6 @@ class Train(object):
 		print("init train")
 		self.now_batch = 0
 		self.batch_size = 30
-
 		self.epoch = 10 + 75 + 30 + 30
 
 		self.learning_rate_start = 0.001
@@ -38,6 +37,7 @@ class Train(object):
 		Example:
 			>> d
 		"""
+
 		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 		label = tf.placeholder(tf.float32, [None, 20, 5])
 		num_object = tf.placeholder(tf.int32, [None])
@@ -63,6 +63,7 @@ class Train(object):
         Example:
             >> d
         """
+
 		train_X, train_Y, train_O, train_num, valid_X, valid_Y, valid_O = self.get_data_set()
 		image, label, num_object, learning_rate, loss, train_op = self.setting()
 
@@ -135,8 +136,8 @@ class Train(object):
 		Example:
 			>> d
 		"""
-		if ((self.now_batch + self.batch_size) < len(O)):
-			x = X[self.now_batch: self.now_batch + self.batch_size]
+		if((self.now_batch + self.batch_size) < len(O)):
+			x = X[self.now_batch : self.now_batch + self.batch_size]
 			y = Y[self.now_batch: self.now_batch + self.batch_size]
 			o = O[self.now_batch: self.now_batch + self.batch_size]
 			self.network.set_batch_size(self.now_batch)
@@ -152,12 +153,9 @@ class Train(object):
 
 class PreTrain(object):
 	"""PreTrain class
-
 	Pre-Train the CNN
-
 	Constructor:
 		init batch_size, learning rate
-
 	Methods:
 		setting
 		trainig

@@ -37,7 +37,6 @@ class Train(object):
 		Example:
 			>> d
 		"""
-
 		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 		label = tf.placeholder(tf.float32, [None, 20, 5])
 		num_object = tf.placeholder(tf.int32, [None])
@@ -63,7 +62,6 @@ class Train(object):
         Example:
             >> d
         """
-
 		train_X, train_Y, train_O, train_num, valid_X, valid_Y, valid_O = self.get_data_set()
 		image, label, num_object, learning_rate, loss, train_op = self.setting()
 
@@ -162,7 +160,7 @@ class PreTrain(object):
 	"""
 	def __init__(self):
 		print("init pre-train")
-		self.epoch = 100
+		self.epoch = 500
 		self.batch_size = 30
 		self.learning_rate = 0.001
 
@@ -251,10 +249,10 @@ class PreTrain(object):
 				validation_acc = sess.run(accuracy, feed_dict={image: valid_X, label: valid_Y}) * 100
 				print("Validation Set Accuracy : ", validation_acc)
 
-				if(int(validation_acc) > 93):
+				if(int(validation_acc) > 90):
 					break
 
-				if (total_cost / total_batch < 0.03):
+				if (total_cost / total_batch < 0.05):
 					break
 
 			saver.save(sess, "./_model/pre_train/pretrain.ckpt")

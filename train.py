@@ -160,7 +160,7 @@ class PreTrain(object):
 	"""
 	def __init__(self):
 		print("init pre-train")
-		self.epoch = 500
+		self.epoch = 200
 		self.batch_size = 30
 		self.learning_rate = 0.001
 
@@ -249,10 +249,10 @@ class PreTrain(object):
 				validation_acc = sess.run(accuracy, feed_dict={image: valid_X, label: valid_Y}) * 100
 				print("Validation Set Accuracy : ", validation_acc)
 
-				if(int(validation_acc) > 90):
+				if(int(validation_acc) > 80):
 					break
 
-				if (total_cost / total_batch < 0.05):
+				if (total_cost / total_batch < 0.1):
 					break
 
 			saver.save(sess, "./_model/pre_train/pretrain.ckpt")

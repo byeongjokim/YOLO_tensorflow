@@ -29,13 +29,15 @@ Donwload [VOC2007](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/) dataset. The
 ~/VOC2007$ mv JPEGImages /path/to/project/_data/VOC2007
 ~/VOC2007$ mv ImageSets/Layout/trainval.txt /path/to/project/_data/VOC2007
 ```
-<br>
+
 To Use checkpoint in Tensorflow you should make folders which the checkpoints can be saved in. There should be two folders for pre training and training.
+
 ```
 ~/path/to/project$ mkdir _model
 ~/path/to/project$ mkdir _model/pre_train
 ~/path/to/project$ mkdir _model/train
 ```
+
 Option | Desciption
 ------ | ----------
 `-h, --help` | show this help message and exit

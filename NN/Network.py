@@ -318,6 +318,39 @@ class Network(object):
 
         return loss
 
+    def get_predict(self, model):
+        """Get Prediction with 7 * 7 * 30
+        calculate ClassSpecificConfidenceSocre with model
+        Keyword Arguments:
+            models (4-D tensor): [7(self.cell_size), 7(self.cell_size), 30(self.num_label + 5 * self.num_box)]
+        Returns:
+            prediction (1-D tensor): [1]
+        Example:
+            >> network = Network()
+            >> model = network.model(image)
+            >> loss = network.get_predict(model)
+        """
+
+        box1 = model[:, :, :5]
+        box2 = model[:, :, 5:10]
+
+        box1_confi = tf.stack([box1[:, :, 4] for i in range(20)], 2)
+        box2_confi = tf.stack([box2[:, :, 4] for i in range(20)], 2)
+        classes = model[:, :, 10:]
+
+        box1_cscs = tf.multiply(box1_confi, classes)
+        box2_cscs = tf.multiply(box2_confi, classes)
+
+        box1_cscs = tf.cast(box1_cscs > 0.2, box1_cscs.dtype) * box1_cscs
+        box2_cscs = tf.cast(box2_cscs > 0.2, box2_cscs.dtype) * box2_cscs
+
+        index = tf.constant([[[i, j] for j in range(7)] for i in range(7)])
+
+        box1_cscs_with_index = tf.concat([index, box1_cscs], 2)
+        box2_cscs_with_index = tf.concat([index, box2_cscs], 2)
+        cscs_with_index = tf.reshape(tf.concat([box1_cscs_with_index, box2_cscs_with_index],0), [98, 22])
+        return 1
+
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu
         Your weight and bias have name+_W and name+_b

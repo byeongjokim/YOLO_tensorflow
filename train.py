@@ -2,6 +2,9 @@ from NN.Network import Network
 from Data.DataSet import VOC2007, Pre_Train_Data
 import tensorflow as tf
 import numpy as np
+import random
+from collections import Counter
+import matplotlib.pyplot as plt
 
 class Train(object):
 	"""Train class
@@ -73,10 +76,13 @@ class Train(object):
 
 			# train
 
+			xs = []
+			ys = []
+
 			num_batch = int((train_num / self.batch_size) + 0.5)
 			lr = 0.001
 			for e in range(self.epoch):
-				total_loss = 0
+				total_cost = 0
 				if (e < 10):
 					lr = self.learning_rate_start + 0.001 * e
 				elif (e - 10 < 75):
@@ -90,13 +96,20 @@ class Train(object):
 
 				for i in range(num_batch):
 					x, y, o = self.next_batch_data(train_X, train_Y, train_O)
-					_, loss = sess.run([train_op, loss], feed_dict={image: x, label: y, num_object: o, learning_rate: lr})
+					_, cost = sess.run([train_op, loss], feed_dict={image: x, label: y, num_object: o, learning_rate: lr})
 
-					total_loss = total_loss + loss
+					total_cost = total_cost + cost
 
-				print("epoch " + str(e) + " loss : " + str(total_loss))
-				print("validation set loss : ", sess.run(loss, feed_dict={image: valid_X, label: valid_Y, num_object: valid_O}))
+				start = random.randrange(0, len(valid_Y))
+				vx = valid_X[start:start+100]
+				vy = valid_Y[start:start+100]
+				vo = valid_O[start:start+100]
 
+				print("epoch " + str(e) + " loss : " + str(total_cost))
+				print("validation set loss : ", sess.run(loss, feed_dict={image: vx, label: vy, num_object: vo}))
+
+				xs.append(e+1)
+				ys.append(total_cost/num_batch)
 			saver.save(sess, "./_model/train/train.ckpt")
 
 		return 1
@@ -198,31 +211,20 @@ class PreTrain(object):
 		Example:
 			>> d
 		"""
+		train_X, train_Y, valid_X, valid_Y = self.get_data_set()
 		image, label, train_op, loss, accuracy = self.setting()
-		data = Pre_Train_Data()
-		train_set, valid_set = data.make_dataset()
-
-		train_X = np.array([i["X"] for i in train_set])
-		train_y = np.array([i["Y"] for i in train_set])
-		train_Y = np.zeros((len(train_y), 20))
-		train_Y[np.arange(len(train_y)), train_y] = 1
-
-		valid_X = np.array([i["X"] for i in valid_set])
-		valid_y = np.array([i["Y"] for i in valid_set])
-		valid_Y = np.zeros((len(valid_y), 20))
-		valid_Y[np.arange(len(valid_y)), valid_y] = 1
-
-		valid_X = valid_X[:100]
-		valid_Y = valid_Y[:100]
 
 		with tf.Session() as sess:
 			saver = tf.train.Saver()
 			sess.run(tf.global_variables_initializer())
 
-			total_batch = int(len(train_set) / self.batch_size)
+			total_batch = int(len(train_X) / self.batch_size)
 
 			if(total_batch == 0):
 				total_batch = 1
+
+			xs = []
+			ys = []
 
 			for e in range(self.epoch):
 				total_cost = 0
@@ -246,8 +248,15 @@ class PreTrain(object):
 
 				print('Epoch:', '%d' % (e + 1), 'Average cost =', '{:.3f}'.format(total_cost / total_batch))
 
-				validation_acc = sess.run(accuracy, feed_dict={image: valid_X, label: valid_Y}) * 100
+				start = random.randrange(0, len(valid_Y))
+				vx = valid_X[start:start+100]
+				vy = valid_Y[start:start+100]
+
+				validation_acc = sess.run(accuracy, feed_dict={image: vx, label: vy}) * 100
 				print("Validation Set Accuracy : ", validation_acc)
+
+				xs.append(e+1)
+				ys.append(total_cost/total_batch)
 
 				if(int(validation_acc) > 80):
 					break
@@ -256,7 +265,37 @@ class PreTrain(object):
 					break
 
 			saver.save(sess, "./_model/pre_train/pretrain.ckpt")
-
+			plt.plot(xs, ys, 'r')
+			plt.show()
 
 		return 1
 
+	def get_data_set(self):
+		"""d
+		d
+		Keyword Arguments:
+			d
+		Returns:
+			d
+		Example:
+			>> d
+		"""
+		data = Pre_Train_Data()
+		train_set, valid_set = data.make_dataset()
+
+		train_X = np.array([i["X"] for i in train_set])
+		train_y = np.array([i["Y"] for i in train_set])
+		train_Y = np.zeros((len(train_y), 20))
+		train_Y[np.arange(len(train_y)), train_y] = 1
+
+		valid_X = np.array([i["X"] for i in valid_set])
+		valid_y = np.array([i["Y"] for i in valid_set])
+		valid_Y = np.zeros((len(valid_y), 20))
+		valid_Y[np.arange(len(valid_y)), valid_y] = 1
+
+		print(len(train_y))
+		print(Counter(train_y))
+		print(len(valid_y))
+		print(Counter(valid_y))
+
+		return train_X, train_Y, valid_X, valid_Y

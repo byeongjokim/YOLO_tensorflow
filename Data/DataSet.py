@@ -202,7 +202,7 @@ class Pre_Train_Data(object):
         train_set = []
         valid_set = []
 
-        images = os.listdir(self.image_path)[:500]
+        images = os.listdir(self.image_path)[:1000]
 
         for image in images:
             fileName = os.path.splitext(image)[0]

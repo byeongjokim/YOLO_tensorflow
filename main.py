@@ -8,6 +8,7 @@ def main():
 	parser.add_argument("--test", help="option for Test with Image ex) python main.py --test -i image_name", action="store_true")
 	parser.add_argument("-i", "--image", help="input Image for Testing")
 	args = parser.parse_args()
+	
 	if args.pretrain:
 		pretrain = PreTrain()
 		pretrain.training()

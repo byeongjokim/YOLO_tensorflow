@@ -317,6 +317,53 @@ class Network(object):
             loss = tf.add(loss, while_result[4])
 
         return loss
+    
+    def get_realminmax(self, bbox, loc):
+        bbox = tf.nn.relu(bbox)
+        x = (bbox[0] + loc[1]) * 64
+        y = (bbox[1] + loc[0]) * 64
+        w = bbox[2] * 448
+        h = bbox[3] * 448
+
+        result = tf.stack([x-w, y-h, x+w, y+h], 0)
+        result = tf.nn.relu(bbox)
+        return result
+
+    def nmscond(self, tmp, i, zero_array, max_index):
+        return tf.not_equal(tmp[:,i][max_index], 0)
+
+
+    def nmsbody(self, tmp, i, zero_array, max_index):
+
+        for h in range(max_index+1, 98):
+            iou = tf.cond(tf.equal(0, tmp[:, i][h]),
+                        lambda: 0,
+                        lambda: self.iou(
+                                        self.get_realminmax(tmp[max_index, 2:6], tmp[max_index, :2]),
+                                        tf.stack([self.get_realminmax(tmp[h, 2:6], tmp[h, :2]), [0,0,0,0]], 0)
+                                        )
+                        )
+            
+            t = tf.constant([1])
+            paddings = tf.constant([[h, 98-h-1]])
+
+            tmp_zero_array = tf.cond(tf.less(iou, 0.5),
+                    lambda: 0,
+                    lambda: tf.pad(t, paddings, "CONSTANT")
+                    )
+
+            zero_array = tf.add(zero_array, tmp_zero_array)
+
+        return tmp, i, zero_array, max_index+1
+
+    def non_maximum_suppression(self, tmp, i):
+
+        zero_array = tf.zeros([98])
+        max_index = tf.constant(0)
+
+        while_result = tf.while_loop(cond=self.nmscond, body=self.nmsbody, loop_vars=[tmp, i, zero_array, max_index])
+
+        return while_result[2]
 
     def get_predict(self, model):
         """Get Prediction with 7 * 7 * 30
@@ -345,10 +392,19 @@ class Network(object):
         box2_cscs = tf.cast(box2_cscs > 0.2, box2_cscs.dtype) * box2_cscs
 
         index = tf.constant([[[i, j] for j in range(7)] for i in range(7)])
+        index = tf.cast(index, tf.float32)
 
-        box1_cscs_with_index = tf.concat([index, box1_cscs], 2)
-        box2_cscs_with_index = tf.concat([index, box2_cscs], 2)
-        cscs_with_index = tf.reshape(tf.concat([box1_cscs_with_index, box2_cscs_with_index],0), [98, 22])
+        box1_cscs_with_index = tf.concat([index, box1[:, :, :4], box1_cscs], 2)
+        box2_cscs_with_index = tf.concat([index, box2[:, :, :4], box2_cscs], 2)
+        tmp = tf.reshape(tf.concat([box1_cscs_with_index, box2_cscs_with_index],0), [98, 26])
+
+
+        for i in range(6, 26):
+            tmp = tf.gather(tmp, tf.nn.top_k(tmp[:, i], k=98).indices)
+            mask = self.non_mxaimum_suppression(tmp, i)
+            tf.stack([tmp[:, :i],
+                tf.multiply(tmp[:, i], tf.cast(tf.equal(mask, 0), mask.dtype)),
+                tmp[:, i+1:]])
         return 1
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):

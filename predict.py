@@ -10,14 +10,23 @@ class Test(object):
 
 
     def setting(self):
+        """
         image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 
         self.network = Network()
         model = self.network.model(image)
-
+        """
         return 1
 
     def predict(self, image):
-        cv2.resize(image, (448, 448))
+        model = tf.zeros([7, 7, 30])
+        model = tf.add(model, 2)
+        network = Network()
+        result = network.get_predict(model)
 
-        net
+        sess = tf.Session()
+        sess.run(result)
+
+
+a = Test()
+a.predict(1)

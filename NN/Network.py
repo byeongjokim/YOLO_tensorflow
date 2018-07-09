@@ -326,29 +326,29 @@ class Network(object):
         h = bbox[3] * 448
 
         result = tf.stack([x-w, y-h, x+w, y+h], 0)
-        result = tf.nn.relu(bbox)
+        result = tf.nn.relu(result)
         return result
 
     def nmscond(self, tmp, i, zero_array, max_index):
         return tf.not_equal(tmp[:,i][max_index], 0)
 
-
     def nmsbody(self, tmp, i, zero_array, max_index):
-
-        for h in range(max_index+1, 98):
-            iou = tf.cond(tf.equal(0, tmp[:, i][h]),
-                        lambda: 0,
+        print(type(max_index))
+        for h in range(98):
+            iou = tf.cond(tf.equal(0.0, tmp[:, i][h]),
+                        lambda: 0.0,
                         lambda: self.iou(
                                         self.get_realminmax(tmp[max_index, 2:6], tmp[max_index, :2]),
                                         tf.stack([self.get_realminmax(tmp[h, 2:6], tmp[h, :2]), [0,0,0,0]], 0)
                                         )
                         )
             
-            t = tf.constant([1])
+            t = tf.constant([1.0])
+            t2 = tf.constant([0.0])
             paddings = tf.constant([[h, 98-h-1]])
 
             tmp_zero_array = tf.cond(tf.less(iou, 0.5),
-                    lambda: 0,
+                    lambda: tf.pad(t2, paddings, "CONSTANT"),
                     lambda: tf.pad(t, paddings, "CONSTANT")
                     )
 
@@ -359,8 +359,8 @@ class Network(object):
     def non_maximum_suppression(self, tmp, i):
 
         zero_array = tf.zeros([98])
-        max_index = tf.constant(0)
-
+        max_index = 0
+        print(type(max_index))
         while_result = tf.while_loop(cond=self.nmscond, body=self.nmsbody, loop_vars=[tmp, i, zero_array, max_index])
 
         return while_result[2]
@@ -401,11 +401,11 @@ class Network(object):
 
         for i in range(6, 26):
             tmp = tf.gather(tmp, tf.nn.top_k(tmp[:, i], k=98).indices)
-            mask = self.non_mxaimum_suppression(tmp, i)
-            tf.stack([tmp[:, :i],
-                tf.multiply(tmp[:, i], tf.cast(tf.equal(mask, 0), mask.dtype)),
-                tmp[:, i+1:]])
-        return 1
+            mask = self.non_maximum_suppression(tmp, i)
+            tmp = tf.concat([tmp[:, :i],
+                tf.reshape(tf.multiply(tmp[:, i], tf.cast(tf.equal(mask, 0), mask.dtype)), [98, 1]),
+                tmp[:, i+1:]], 1)
+        return tmp
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu

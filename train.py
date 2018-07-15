@@ -20,7 +20,8 @@ class Train(object):
 	def __init__(self):
 		print("init train")
 		self.now_batch = 0
-		self.batch_size = 30
+		#self.batch_size = 30
+		self.batch_size = 1
 		self.epoch = 10 + 75 + 30 + 30
 
 		self.learning_rate_start = 0.001
@@ -43,7 +44,7 @@ class Train(object):
 		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 		label = tf.placeholder(tf.float32, [None, 20, 5])
 		num_object = tf.placeholder(tf.int32, [None])
-		learning_rate = tf.placeholder(tf.float32, [None])
+		lr = tf.placeholder(tf.float32, [])
 
 		self.network = Network()
 		self.network.set_batch_size(self.batch_size)
@@ -51,9 +52,9 @@ class Train(object):
 		model = self.network.model(image)
 		loss = self.network.get_loss(label, model, num_object)
 
-		train_op = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=self.momentum)
+		train_op = tf.train.MomentumOptimizer(learning_rate=lr, momentum=self.momentum).minimize(loss)
 
-		return image, label, num_object, learning_rate, loss, train_op
+		return image, label, num_object, lr, loss, train_op
 
 	def training(self):
 		"""d
@@ -72,7 +73,7 @@ class Train(object):
 			sess.run(tf.global_variables_initializer())
 
 			saver = tf.train.Saver()
-			saver.restore(sess, "./_model/pre_train/pretrain.ckpt")
+			#saver.restore(sess, "./_model/pre_train/pretrain.ckpt")
 
 			# train
 
@@ -174,7 +175,7 @@ class PreTrain(object):
 	def __init__(self):
 		print("init pre-train")
 		self.epoch = 200
-		self.batch_size = 30
+		self.batch_size = 20
 		self.learning_rate = 0.001
 
 	def setting(self):
@@ -187,7 +188,7 @@ class PreTrain(object):
 		Example:
 			>> d
 		"""
-		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
+		image = tf.placeholder(tf.float32, [None, 224, 224, 3])
 		label = tf.placeholder(tf.float32, [None, 20])
 
 		net = Network()
@@ -239,7 +240,7 @@ class PreTrain(object):
 						batch_y = train_Y[j:j + self.batch_size]
 						j = j + self.batch_size
 
-					batch_x = batch_x.reshape(-1, 448, 448, 3)
+					batch_x = batch_x.reshape(-1, 224, 224, 3)
 					batch_y = batch_y.reshape(-1, 20)
 
 					_, cost = sess.run([train_op, loss], feed_dict={image:batch_x, label:batch_y})
@@ -248,20 +249,20 @@ class PreTrain(object):
 
 				print('Epoch:', '%d' % (e + 1), 'Average cost =', '{:.3f}'.format(total_cost / total_batch))
 
-				start = random.randrange(0, len(valid_Y))
-				vx = valid_X[start:start+100]
-				vy = valid_Y[start:start+100]
+				#start = random.randrange(0, len(valid_Y))
+				#vx = valid_X[start:start+100]
+				#vy = valid_Y[start:start+100]
 
-				validation_acc = sess.run(accuracy, feed_dict={image: vx, label: vy}) * 100
-				print("Validation Set Accuracy : ", validation_acc)
+				#validation_acc = sess.run(accuracy, feed_dict={image: vx, label: vy}) * 100
+				#print("Validation Set Accuracy : ", validation_acc)
 
 				xs.append(e+1)
 				ys.append(total_cost/total_batch)
 
-				if(int(validation_acc) > 80):
-					break
+				#if(int(validation_acc) > 80):
+				#	break
 
-				if (total_cost / total_batch < 0.1):
+				if (total_cost / total_batch < 0.2):
 					break
 
 			saver.save(sess, "./_model/pre_train/pretrain.ckpt")

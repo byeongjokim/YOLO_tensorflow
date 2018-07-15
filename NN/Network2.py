@@ -52,14 +52,8 @@ class Network(object):
             >> asdasdas
             >> predict_model = model(image)
         """
-        if pre_train == 1:
-            tmp = self.conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1_pretrain")
-            tmp = self.pool(din=tmp, size=2, stride=1, option="maxpool")
-
-        else:
-            tmp = self.conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1_train")
-            tmp = self.pool(din=tmp, size=2, stride=2, option="maxpool")
-
+        tmp = self.conv_layer(filter_size=7, fin=3, fout=64, din=image, stride=2, name="conv_1")
+        tmp = self.pool(din=tmp, size=2, stride=2, option="maxpool")
 
         tmp = self.conv_layer(filter_size=3, fin=64, fout=192, din=tmp, stride=1, name="conv_2")
         tmp = self.pool(din=tmp, size=2, stride=2, option="maxpool")
@@ -83,19 +77,18 @@ class Network(object):
 
         if pre_train == 1:
             print(tmp)
-
-            tmp = tf.reshape(tmp, [tf.shape(tmp)[0], 14 * 14 * 1024])
-            pre_W1 = tf.get_variable(name="pre_t_W1", shape=[14 * 14 * 1024, 1000],
-                                    initializer=tf.contrib.layers.xavier_initializer())
-            pre_b1 = tf.get_variable(name="pre_t_b1", shape=[1000],
-                                    initializer=tf.contrib.layers.xavier_initializer())
-            tmp = tf.nn.relu(tf.matmul(tmp, pre_W1) + pre_b1)
-
             with tf.device("/cpu:0"):
+                tmp = tf.reshape(tmp, [tf.shape(tmp)[0], 14 * 14 * 1024])
+                pre_W1 = tf.get_variable(name="pre_t_W1", shape=[14 * 14 * 1024, 1000],
+                                         initializer=tf.contrib.layers.xavier_initializer())
+                pre_b1 = tf.get_variable(name="pre_t_b1", shape=[1000],
+                                         initializer=tf.contrib.layers.xavier_initializer())
+                tmp = tf.nn.relu(tf.matmul(tmp, pre_W1) + pre_b1)
+
                 pre_W2 = tf.get_variable(name="pre_t_W2", shape=[1000, self.pre_num_label],
-                                        initializer=tf.contrib.layers.xavier_initializer())
+                                         initializer=tf.contrib.layers.xavier_initializer())
                 pre_b2 = tf.get_variable(name="pre_t_b2", shape=[self.pre_num_label],
-                                        initializer=tf.contrib.layers.xavier_initializer())
+                                         initializer=tf.contrib.layers.xavier_initializer())
                 pre_t = tf.matmul(tmp, pre_W2) + pre_b2
             return pre_t
 
@@ -113,21 +106,27 @@ class Network(object):
 
         # FC Layer
         with tf.device("/cpu:0"):
-            W1 = tf.get_variable(name="FC_1_W", shape=[7 * 7 * 1024, 4096],
+            W1 = tf.get_variable(name="FC_1_W", shape=[7 * 7 * 1024, 512],
                                  initializer=tf.contrib.layers.xavier_initializer())
-            b1 = tf.get_variable(name="FC_1_b", shape=[4096], initializer=tf.contrib.layers.xavier_initializer())
+            b1 = tf.get_variable(name="FC_1_b", shape=[512], initializer=tf.contrib.layers.xavier_initializer())
             fc1 = tf.nn.leaky_relu(tf.matmul(reshape, W1) + b1, alpha=0.1)
             fc1 = tf.nn.dropout(fc1, keep_prob=0.5)
 
-            W2 = tf.get_variable(name="FC_2_W",
+            W2 = tf.get_variable(name="FC_2_W", shape=[512, 4096],
+                                 initializer=tf.contrib.layers.xavier_initializer())
+            b2 = tf.get_variable(name="FC_2_b", shape=[4096], initializer=tf.contrib.layers.xavier_initializer())
+            fc2 = tf.nn.leaky_relu(tf.matmul(fc1, W2) + b2, alpha=0.1)
+            fc2 = tf.nn.dropout(fc2, keep_prob=0.5)
+
+            W3 = tf.get_variable(name="FC_3_W",
                                  shape=[4096, self.cell_size * self.cell_size * (self.num_label + 5 * self.num_box)],
                                  initializer=tf.contrib.layers.xavier_initializer())
-            b2 = tf.get_variable(name="FC_2_b",
+            b3 = tf.get_variable(name="FC_3_b",
                                  shape=[self.cell_size * self.cell_size * (self.num_label + 5 * self.num_box)],
                                  initializer=tf.contrib.layers.xavier_initializer())
-            fc2 = tf.matmul(fc1, W2) + b2
+            fc3 = tf.matmul(fc2, W3) + b3
 
-            model = tf.reshape(fc2,
+            model = tf.reshape(fc3,
                                [tf.shape(fc2)[0], self.cell_size, self.cell_size, self.num_label + 5 * self.num_box])
 
         return model
@@ -226,7 +225,8 @@ class Network(object):
 
         xywh_m_1 = m[i, j, :4]
         xywh_m_2 = m[i, j, 4:]
-        coord_m = tf.concat([xywh_m_1[:2], tf.sqrt(tf.maximum(0.0, xywh_m_1[2:])), xywh_m_2[:2], tf.sqrt(tf.maximum(0.0, xywh_m_2[2:]))], 0)
+        coord_m = tf.concat([xywh_m_1[:2], tf.sqrt(tf.maximum(0.0, xywh_m_1[2:])), xywh_m_2[:2],
+                             tf.sqrt(tf.maximum(0.0, xywh_m_2[2:]))], 0)
 
         return tf.reduce_sum(tf.pow(tf.subtract(coord_l, coord_m), 2))
 
@@ -284,7 +284,7 @@ class Network(object):
 
         label = labels[num, :]
 
-        #model_xywhxywh = tf.nn.relu(tf.concat([model[:, :, :4], model[:, :, 5:9]], 2))
+        # model_xywhxywh = tf.nn.relu(tf.concat([model[:, :, :4], model[:, :, 5:9]], 2))
         model_xywhxywh = tf.concat([model[:, :, :4], model[:, :, 5:9]], 2)
         model_c = tf.stack([model[:, :, 4], model[:, :, 9]], 2)
         model_cls = model[:, :, 10:]
@@ -324,6 +324,94 @@ class Network(object):
             loss = tf.add(loss, while_result[4])
 
         return loss
+
+    def get_realminmax(self, bbox, loc):
+        bbox = tf.nn.relu(bbox)
+        x = (bbox[0] + loc[1]) * 64
+        y = (bbox[1] + loc[0]) * 64
+        w = bbox[2] * 448
+        h = bbox[3] * 448
+
+        result = tf.stack([x - w, y - h, x + w, y + h], 0)
+        result = tf.nn.relu(result)
+        return result
+
+    def nmscond(self, tmp, i, zero_array, max_index):
+        return tf.not_equal(tmp[:, i][max_index], 0)
+
+    def nmsbody(self, tmp, i, zero_array, max_index):
+        print(type(max_index))
+        for h in range(98):
+            iou = tf.cond(tf.equal(0.0, tmp[:, i][h]),
+                          lambda: 0.0,
+                          lambda: self.iou(
+                              self.get_realminmax(tmp[max_index, 2:6], tmp[max_index, :2]),
+                              tf.stack([self.get_realminmax(tmp[h, 2:6], tmp[h, :2]), [0, 0, 0, 0]], 0)
+                          )
+                          )
+
+            t = tf.constant([1.0])
+            t2 = tf.constant([0.0])
+            paddings = tf.constant([[h, 98 - h - 1]])
+
+            tmp_zero_array = tf.cond(tf.less(iou, 0.5),
+                                     lambda: tf.pad(t2, paddings, "CONSTANT"),
+                                     lambda: tf.pad(t, paddings, "CONSTANT")
+                                     )
+
+            zero_array = tf.add(zero_array, tmp_zero_array)
+
+        return tmp, i, zero_array, max_index + 1
+
+    def non_maximum_suppression(self, tmp, i):
+
+        zero_array = tf.zeros([98])
+        max_index = 0
+        print(type(max_index))
+        while_result = tf.while_loop(cond=self.nmscond, body=self.nmsbody, loop_vars=[tmp, i, zero_array, max_index])
+
+        return while_result[2]
+
+    def get_predict(self, model):
+        """Get Prediction with 7 * 7 * 30
+        calculate ClassSpecificConfidenceSocre with model
+        Keyword Arguments:
+            models (4-D tensor): [7(self.cell_size), 7(self.cell_size), 30(self.num_label + 5 * self.num_box)]
+        Returns:
+            prediction (1-D tensor): [1]
+        Example:
+            >> network = Network()
+            >> model = network.model(image)
+            >> loss = network.get_predict(model)
+        """
+
+        box1 = model[:, :, :5]
+        box2 = model[:, :, 5:10]
+
+        box1_confi = tf.stack([box1[:, :, 4] for i in range(20)], 2)
+        box2_confi = tf.stack([box2[:, :, 4] for i in range(20)], 2)
+        classes = model[:, :, 10:]
+
+        box1_cscs = tf.multiply(box1_confi, classes)
+        box2_cscs = tf.multiply(box2_confi, classes)
+
+        box1_cscs = tf.cast(box1_cscs > 0.2, box1_cscs.dtype) * box1_cscs
+        box2_cscs = tf.cast(box2_cscs > 0.2, box2_cscs.dtype) * box2_cscs
+
+        index = tf.constant([[[i, j] for j in range(7)] for i in range(7)])
+        index = tf.cast(index, tf.float32)
+
+        box1_cscs_with_index = tf.concat([index, box1[:, :, :4], box1_cscs], 2)
+        box2_cscs_with_index = tf.concat([index, box2[:, :, :4], box2_cscs], 2)
+        tmp = tf.reshape(tf.concat([box1_cscs_with_index, box2_cscs_with_index], 0), [98, 26])
+
+        for i in range(6, 26):
+            tmp = tf.gather(tmp, tf.nn.top_k(tmp[:, i], k=98).indices)
+            mask = self.non_maximum_suppression(tmp, i)
+            tmp = tf.concat([tmp[:, :i],
+                             tf.reshape(tf.multiply(tmp[:, i], tf.cast(tf.equal(mask, 0), mask.dtype)), [98, 1]),
+                             tmp[:, i + 1:]], 1)
+        return tmp
 
     def conv_layer(self, filter_size, fin, fout, din, stride, name):
         """Make the convolution filter and make result using tf.nn.conv2d and relu

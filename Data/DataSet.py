@@ -62,7 +62,7 @@ class VOC2007(object):
         train_set = []
         valid_set = []
 
-        images = os.listdir(self.image_path)[:10]
+        images = os.listdir(self.image_path)
 
         for image in images:
             fileName = os.path.splitext(image)[0]
@@ -202,7 +202,7 @@ class Pre_Train_Data(object):
         train_set = []
         valid_set = []
 
-        images = os.listdir(self.image_path)[:1000]
+        images = os.listdir(self.image_path)[:1200]
 
         for image in images:
             fileName = os.path.splitext(image)[0]
@@ -216,10 +216,10 @@ class Pre_Train_Data(object):
                 label = self.classes.index(o)
 
                 if (fileName in self.valid_set_list):
-                    valid_set.append({"X": cv2.resize(image_obj, (448, 448)), "Y": label})
+                    valid_set.append({"X": cv2.resize(image_obj, (224, 224)), "Y": label})
 
                 else:
-                    train_set.append({"X": cv2.resize(image_obj, (448, 448)), "Y": label})
+                    train_set.append({"X": cv2.resize(image_obj, (224, 224)), "Y": label})
 
         return train_set, valid_set
 

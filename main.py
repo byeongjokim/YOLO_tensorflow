@@ -1,4 +1,5 @@
 from train import PreTrain, Train
+from predict import Test
 import argparse
 
 def main():
@@ -8,13 +9,17 @@ def main():
 	parser.add_argument("--test", help="option for Test with Image ex) python main.py --test -i image_name", action="store_true")
 	parser.add_argument("-i", "--image", help="input Image for Testing")
 	args = parser.parse_args()
-	
+
+	pretrain = PreTrain()
+	pretrain.training()
+
 	if args.pretrain:
 		pretrain = PreTrain()
 		pretrain.training()
 
 	elif args.train:
-		print("train")
+		train = Train()
+		train.training()
 
 	elif args.test:
 		if(args.image):

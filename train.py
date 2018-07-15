@@ -20,8 +20,7 @@ class Train(object):
 	def __init__(self):
 		print("init train")
 		self.now_batch = 0
-		#self.batch_size = 30
-		self.batch_size = 1
+		self.batch_size = 30
 		self.epoch = 10 + 75 + 30 + 30
 
 		self.learning_rate_start = 0.001
@@ -35,8 +34,8 @@ class Train(object):
 		"""Setting the model
 		Setting the model, placeholder and loss for the training
 		Returns:
-			image (4-D placeholder): [None, 224, 224, 3]
-			label (2-D placeholder): [None, 20]
+			image (4-D placeholder): [None, 448, 448, 3]
+			label (2-D placeholder): [None, 20, 5]
 			num_object (1-D placeholder): [None]
 			lr (1-D placeholder): [None]
 			loss (1-D tensor): tf.reduce_mean()
@@ -60,25 +59,20 @@ class Train(object):
 		return image, label, num_object, lr, loss, train_op
 
 	def training(self):
-		"""d
-        d
-        Keyword Arguments:
-        	d
-        Returns:
-            d
-        Example:
-            >> d
-        """
+		"""training the YOLO model
+		training the YOLO model with dataset.
+		restore the model from the ./_model/pre_train/pretrain.ckpt
+		save the model to the ./_model/train/train.ckpt
+		Example:
+			>> train.training()
+		"""
 		train_X, train_Y, train_O, train_num, valid_X, valid_Y, valid_O = self.get_data_set()
 		image, label, num_object, learning_rate, loss, train_op = self.setting()
 
 		with tf.Session() as sess:
 			sess.run(tf.global_variables_initializer())
-
 			saver = tf.train.Saver()
-			#saver.restore(sess, "./_model/pre_train/pretrain.ckpt")
-
-			# train
+			saver.restore(sess, "./_model/pre_train/pretrain.ckpt")
 
 			xs = []
 			ys = []
@@ -114,19 +108,26 @@ class Train(object):
 
 				xs.append(e+1)
 				ys.append(total_cost/num_batch)
+
 			saver.save(sess, "./_model/train/train.ckpt")
+			
+			plt.plot(xs, ys, 'r')
+			plt.show()
 
 		return 1
 
 	def get_data_set(self):
-		"""d
-		d
-		Keyword Arguments:
-			d
+		"""get the data set of YOLO DataSet
+		get the dataset of YOLO from VOC2007 class and then refine them.
 		Returns:
-			d
+			X (numpy array): [None, 448, 448, 3]
+			Y (numpy array): [None, 20, 5]
+			O (numpy array): [None, 1]
+			valid_X (numpy array): [None, 448, 448, 3]
+			valid_Y (numpy array): [None, 20, 5]
+			valid_O (numpy array): [None, 1]
 		Example:
-			>> d
+			>> train_X, train_Y, train_O, valid_X, valid_Y, valid_O = self.get_data_set()
 		"""
 		data = VOC2007()
 		train_set, valid_set = data.make_dataset()
@@ -251,18 +252,8 @@ class PreTrain(object):
 
 				print('Epoch:', '%d' % (e + 1), 'Average cost =', '{:.3f}'.format(total_cost / total_batch))
 
-				#start = random.randrange(0, len(valid_Y))
-				#vx = valid_X[start:start+100]
-				#vy = valid_Y[start:start+100]
-
-				#validation_acc = sess.run(accuracy, feed_dict={image: vx, label: vy}) * 100
-				#print("Validation Set Accuracy : ", validation_acc)
-
 				xs.append(e+1)
 				ys.append(total_cost/total_batch)
-
-				#if(int(validation_acc) > 80):
-				#	break
 
 				if (total_cost / total_batch < 0.2):
 					break
@@ -274,13 +265,13 @@ class PreTrain(object):
 		return 1
 
 	def get_data_set(self):
-		"""d
-		d
+		"""get the data set of pre-training
+		get the dataset of pre-training from Pre_Train_Data class and then refine them.
 		Returns:
-			train_X
-			train_Y
-			valid_X
-			valid_Y
+			train_X (numpy array): [None, 448, 448, 3]
+			train_Y (numpy array): [None, 20]
+			valid_X (numpy array): [None, 448, 448, 3]
+			valid_Y (numpy array): [None, 20]
 		Example:
 			>> train_X, train_Y, valid_X, valid_Y = self.get_data_set()
 		"""

@@ -283,7 +283,6 @@ class Network(object):
 
         label = labels[num, :]
 
-        #model_xywhxywh = tf.nn.relu(tf.concat([model[:, :, :4], model[:, :, 5:9]], 2))
         model_xywhxywh = tf.concat([model[:, :, :4], model[:, :, 5:9]], 2)
         model_c = tf.stack([model[:, :, 4], model[:, :, 9]], 2)
         model_cls = model[:, :, 10:]

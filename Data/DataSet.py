@@ -52,8 +52,8 @@ class VOC2007(object):
         """Make DataSet for training and validating
         parsing the folders, make dataset
         Returns:
-            train_set (Dictionary list): {X: image, Y:[x, y, w, h, cls, cellx, celly]}
-            valid_set (Dictionary list): {X: image, Y:[x, y, w, h, cls, cellx, celly]}
+            train_set (Dictionary list): {X: image, Y:[20, 5], O:num_object}
+            valid_set (Dictionary list): {X: image, Y:[20, 5], O:num_object}
         Example:
             >> data = VOC2007()
             >> train_set, valid_set = data.make_dataset()
@@ -80,10 +80,6 @@ class VOC2007(object):
                 w = int(w * ratio_width)
                 h = int(h * ratio_height)
 
-                """
-                x, y, w, h, cell = self.get_xywh_forTraining(x, y, w, h)
-                obj = [x, y, w, h, self.classes.index(o), cell[0], cell[1]]
-                """
                 obj = [x, y, w, h, self.classes.index(o)]
 
                 Y[self.classes.index(o)] = obj

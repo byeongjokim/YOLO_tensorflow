@@ -5,22 +5,17 @@ import random
 import cv2
 
 class Test(object):
-    """Network class
-    Network of Yolo Model, even pre-train Model.
+    """Predict the Image with Yolo
+    Get the image with object detection bbox.
     Constructor:
-        init cell size(default is 7), number of label(default is 20 in VOC2007), number of box(default is 2)
+        init threshold and threshold of iou when predict
     Methods:
-        set_batch_size
-        model
-        confidence_loss
+        setting
+        predict
+        make_box
+        get_minmax_xy
         iou
-        coordinate_loss
-        class_loss
-        cond
-        body
-        get_loss
-        conv_layer
-        pool
+        nms
     """
     def __init__(self):
         print("init test")
@@ -34,6 +29,14 @@ class Test(object):
         ]
 
     def setting(self):
+        """Setting the model
+        Setting the model and placeholder
+        Returns:
+            image (4-D placeholder): [None, 448, 448, 3]
+            model (2-D placeholder): [None, 20]            
+        Example:
+            >> image, model = self.setting()
+        """
         image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 
         network = Network()
@@ -42,6 +45,14 @@ class Test(object):
         return image, model
 
     def predict(self, img):
+        """Predict the object detection of image
+        Calculate and get bet bounding boxes and draw them in image
+        Keyword Arguments:
+            img (image with cv2): [448, 448, 3]
+        Example:
+            >> img = cv2.resize(cv2.imread("path/image"), (448, 448))
+            >> test.predict(img)
+        """
         x = np.reshape(img, [1, 448, 448, 3])
         
         image, model = self.setting()
@@ -109,6 +120,12 @@ class Test(object):
         cv2.waitKey(0)
 
     def make_box(self, bbox, img):
+        """Draw the bbox in image
+        Draw the bounding box with calculating the minx, miny, maxx, maxy.
+        Keyword Arguments:
+            bbox (numpy array): [6]
+            img (image with cv2): [448, 448, 3]
+        """
         x, y, w, h, label, prob = bbox
 
         label_name = self.classes[int(label)]
@@ -122,6 +139,12 @@ class Test(object):
         cv2.putText(img, label_name, (minx, miny), cv2.FONT_HERSHEY_SIMPLEX, 4, (255, 255, 255))
 
     def get_minmax_xy(self, box):
+        """
+        Keyword Arguments:
+            box (1-D tensor): [4] => [x, y, w, h]
+        Returns:
+            [min_x, min_y, max_x, max_y]
+        """
         min_x = int(box[0] - box[2] / 2)
         max_x = int(box[0] + box[2] / 2 + 0.5)
         min_y = int(box[1] - box[3] / 2)
@@ -130,6 +153,13 @@ class Test(object):
         return [min_x, min_y, max_x, max_y]
 
     def iou(self, box_a, box_b):
+        """Get iou with two boxes
+        Keyword Arguments:
+            box_a (1-D numpy array): [4] => [x, y, w, h]
+            box_b (1-D numpy array): [4] => [x, y, w, h]
+        Returns:
+            iou
+        """
         box1 = self.get_minmax_xy(box_a)
         box2 = self.get_minmax_xy(box_b)
 
@@ -149,12 +179,17 @@ class Test(object):
         else:
             return 0
 
-
     def nms(self, xywh, score):
+        """apply non maximum suppression with iou
+        Keyword Arguments:
+            xywh (2-D numpy array): [98, 4] => [[x, y, w, h] ... ]
+            score (1-D numpy array): [98]
+        Returns:
+            score
+        """
         for i in range(len(score)):
             for j in range(i + 1, len(score)):
                 if (self.iou(xywh[i], xywh[j]) > 0.5):
                     score[j] = 0
 
         return score
-

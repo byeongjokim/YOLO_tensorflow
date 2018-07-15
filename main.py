@@ -11,9 +11,6 @@ def main():
 	parser.add_argument("-i", "--image", help="input Image for Testing")
 	args = parser.parse_args()
 
-	pretrain = PreTrain()
-	pretrain.training()
-
 	if args.pretrain:
 		pretrain = PreTrain()
 		pretrain.training()

@@ -1,12 +1,6 @@
 # YOLO
 Tensorflow Implementation of YOLO [pdf](https://pjreddie.com/media/files/papers/yolo.pdf)
  
- 
-## YOLO
-YOLO(You Only Look Once) 
- 
- 
- 
 ## Requirements
 - Python 3
 - TensorFlow
@@ -14,7 +8,7 @@ YOLO(You Only Look Once)
 - OpenCV2
  
 ## Data Set
-I use [VOC2007](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/) dataset. This dataset has 20 classes "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor". I fixed this classes' order. In Data/DataSet.py, there is a source, which makes training, validation set. It parsing the xml files of VOC2007 images at first. Then load the image and resize it as (448, 448). Then re- (x, y) of center point, width, height.
+I use [VOC2007](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/) dataset. This dataset has 20 classes "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor". I fixed this classes' order. In Data/DataSet.py, there is a source, which makes training, validation set. It parsing the xml files of VOC2007 images at first. After it load the image and resize it as (448, 448), get (x, y) of center point, width, height.
 <br>
 In paper, we should use ImageNet 1000 classes data when pre training. But I cannot get that data.. So I use this VOC2007 in pre training also.
  
@@ -45,4 +39,3 @@ Option | Desciption
 `--train` | option for Training
 `--test` | option for Test with Image ex) python main.py --test -i image_name
 `-i, --image` | input Image for Testing
-### Test

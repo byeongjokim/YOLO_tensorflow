@@ -5,6 +5,23 @@ import random
 import cv2
 
 class Test(object):
+    """Network class
+    Network of Yolo Model, even pre-train Model.
+    Constructor:
+        init cell size(default is 7), number of label(default is 20 in VOC2007), number of box(default is 2)
+    Methods:
+        set_batch_size
+        model
+        confidence_loss
+        iou
+        coordinate_loss
+        class_loss
+        cond
+        body
+        get_loss
+        conv_layer
+        pool
+    """
     def __init__(self):
         print("init test")
         self.thresh = 0.2
@@ -24,11 +41,9 @@ class Test(object):
 
         return image, model
 
-    def predict(self):
-
-        img = cv2.resize(cv2.imread("./test/000009.jpg"), (448, 448))
+    def predict(self, img):
         x = np.reshape(img, [1, 448, 448, 3])
-        print(x)
+        
         image, model = self.setting()
 
         sess = tf.Session()
@@ -38,7 +53,7 @@ class Test(object):
         result = sess.run(model, feed_dict={image: x})
 
         result = result[0]
-        print(result)
+        
         for_x = np.array([[i for i in range(7)] for j in range(7)])
         for_y = np.array([[j for i in range(7)] for j in range(7)])
 

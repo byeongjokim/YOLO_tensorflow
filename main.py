@@ -1,6 +1,7 @@
 from train import PreTrain, Train
 from predict import Test
 import argparse
+import cv2
 
 def main():
 	parser = argparse.ArgumentParser()
@@ -23,14 +24,12 @@ def main():
 
 	elif args.test:
 		if(args.image):
-			print(args.image)
+			img = cv2.resize(cv2.imread(args.image), (448, 448))
+			test = Test()
+			test.predict(img)
 		else:
 			print("please input image with -i or --image")
 		
-
-
-	#train = Train()
-	#train.training()
 	return 1
 
 if __name__=="__main__":

@@ -32,14 +32,17 @@ class Train(object):
 		self.momentum = 0.9
 
 	def setting(self):
-		"""d
-		d
-		Keyword Arguments:
-			d
+		"""Setting the model
+		Setting the model, placeholder and loss for the training
 		Returns:
-			d
+			image (4-D placeholder): [None, 224, 224, 3]
+			label (2-D placeholder): [None, 20]
+			num_object (1-D placeholder): [None]
+			lr (1-D placeholder): [None]
+			loss (1-D tensor): tf.reduce_mean()
+			train_op : tf.train.AdamOptimizer.minimize
 		Example:
-			>> d
+			>> image, label, train_op, loss, accuracy = self.setting()
 		"""
 		image = tf.placeholder(tf.float32, [None, 448, 448, 3])
 		label = tf.placeholder(tf.float32, [None, 20, 5])
@@ -179,14 +182,16 @@ class PreTrain(object):
 		self.learning_rate = 0.001
 
 	def setting(self):
-		"""d
-		d
-		Keyword Arguments:
-			d
+		"""Setting the model
+		Setting the model, placeholder and loss for the training
 		Returns:
-			d
+			image (4-D placeholder): [None, 224, 224, 3]
+			label (2-D placeholder): [None, 20]
+			train_op : tf.train.AdamOptimizer.minimize
+			loss (1-D tensor): tf.reduce_mean()
+			accuracy (1-D tensor): tf.reduce_mean()
 		Example:
-			>> d
+			>> image, label, train_op, loss, accuracy = self.setting()
 		"""
 		image = tf.placeholder(tf.float32, [None, 224, 224, 3])
 		label = tf.placeholder(tf.float32, [None, 20])
@@ -203,14 +208,11 @@ class PreTrain(object):
 		return image, label, train_op, loss, accuracy
 
 	def training(self):
-		"""d
-		d
-		Keyword Arguments:
-			d
-		Returns:
-			d
+		"""training the pre-train model
+		training the pre-train model with dataset and set model.
+		save the model in the ./_model/pre_train/pretrain.ckpt
 		Example:
-			>> d
+			>> pre_train.training()
 		"""
 		train_X, train_Y, valid_X, valid_Y = self.get_data_set()
 		image, label, train_op, loss, accuracy = self.setting()
@@ -274,12 +276,13 @@ class PreTrain(object):
 	def get_data_set(self):
 		"""d
 		d
-		Keyword Arguments:
-			d
 		Returns:
-			d
+			train_X
+			train_Y
+			valid_X
+			valid_Y
 		Example:
-			>> d
+			>> train_X, train_Y, valid_X, valid_Y = self.get_data_set()
 		"""
 		data = Pre_Train_Data()
 		train_set, valid_set = data.make_dataset()

@@ -19,7 +19,6 @@ class Network(object):
         conv_layer
         pool
     """
-
     def __init__(self):
         print("init Network Model")
         self.pre_num_label = 20

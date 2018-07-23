@@ -13,7 +13,6 @@ I use [VOC2007](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/) dataset. This d
 In paper, we should use ImageNet 1000 classes data when pre training. But I cannot get that data.. So I use this VOC2007 in pre training also.
  
 ## Usage
-### Train
 Donwload [VOC2007](http://host.robots.ox.ac.uk/pascal/VOC/voc2007/) dataset. There should be serveral folders and files (Annotations, ImageSets, JPEGImages ...) Move them to project floder.
 ```
 ~/path/to/project$ mkdir _data
